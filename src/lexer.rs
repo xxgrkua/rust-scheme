@@ -39,8 +39,8 @@ impl<'a> Display for Token<'a> {
     }
 }
 
-fn read_identifier(src: &str, mut index: usize, length: usize) -> (Token, usize) {
-    (Token::Dot, index)
+fn read_identifier<'a>(src: &'a str, index: &mut usize, length: usize) -> Token<'a> {
+    Token::Dot
 }
 
 pub fn tokenizer(src: &str) -> Vec<Token> {
