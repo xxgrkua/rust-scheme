@@ -1,5 +1,9 @@
 use std::fmt::Display;
 
+use crate::error::TokenError;
+
+type Result<T> = std::result::Result<T, TokenError>;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'a> {
     Identifier(&'a str),
@@ -39,8 +43,8 @@ impl<'a> Display for Token<'a> {
     }
 }
 
-fn read_identifier<'a>(src: &'a str, index: &mut usize, length: usize) -> Token<'a> {
-    Token::Dot
+fn read_identifier<'a>(src: &'a str, index: &mut usize, length: usize) -> Result<Token<'a>> {
+    Ok(Token::Dot)
 }
 
 pub fn tokenizer(src: &str) -> Vec<Token> {
