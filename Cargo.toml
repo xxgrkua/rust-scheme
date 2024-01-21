@@ -5,8 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-
+[build-dependencies]
+phf = { version = "0.11.2", default-features = false }
+phf_codegen = "0.11.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2.90"
