@@ -22,24 +22,30 @@ pub enum Token<'a> {
     Dot,
 }
 
+impl<'a> Token<'a> {
+    pub fn as_str(&self) -> &'a str {
+        match *self {
+            Self::Identifier(string) => string,
+            Self::Boolean(string) => string,
+            Self::Number(string) => string,
+            Self::Character(string) => string,
+            Self::String(string) => string,
+            Self::OpenParenthesis => "(",
+            Self::CloseParenthesis => ")",
+            Self::VectorOpen => "#(",
+            Self::ByteVectorOpen => "#u8(",
+            Self::Quote => "'",
+            Self::Backquote => "`",
+            Self::Comma => ",",
+            Self::CommaAt => ",@",
+            Self::Dot => ".",
+        }
+    }
+}
+
 impl<'a> Display for Token<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Identifier(string) => write!(f, "{}", string),
-            Self::Boolean(string) => write!(f, "{}", string),
-            Self::Number(string) => write!(f, "{}", string),
-            Self::Character(string) => write!(f, "{}", string),
-            Self::String(string) => write!(f, "{}", string),
-            Self::OpenParenthesis => write!(f, "("),
-            Self::CloseParenthesis => write!(f, ")"),
-            Self::VectorOpen => write!(f, "#("),
-            Self::ByteVectorOpen => write!(f, "#u8("),
-            Self::Quote => write!(f, "'"),
-            Self::Backquote => write!(f, "`"),
-            Self::Comma => write!(f, ","),
-            Self::CommaAt => write!(f, ",@"),
-            Self::Dot => write!(f, "."),
-        }
+        f.write_str(self.as_str())
     }
 }
 
