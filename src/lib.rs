@@ -4,4 +4,4 @@ mod lexer;
 mod parser;
 mod value;
 
-pub use lexer::tokenizer;
+pub use lexer::tokenize;

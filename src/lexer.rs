@@ -47,7 +47,7 @@ fn read_identifier<'a>(src: &'a str, index: &mut usize, length: usize) -> Result
     Ok(Token::Dot)
 }
 
-pub fn tokenizer(src: &str) -> Vec<Token> {
+pub fn tokenize(src: &str) -> Vec<Token> {
     let token_list = vec![];
     let mut index = 0;
     let length = src.len();
@@ -69,6 +69,6 @@ mod test {
     #[test]
     fn test_tokenizer() {
         let src = "(define x 4)";
-        println!("{:?}", tokenizer(src));
+        println!("{:?}", tokenize(src));
     }
 }
