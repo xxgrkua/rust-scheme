@@ -13,6 +13,7 @@ const BACKQUOTE: &'static str = "`";
 const COMMA: &'static str = ",";
 const COMMA_AT: &'static str = ",@";
 const DOT: &'static str = ".";
+const COMMENT: &'static str = ";";
 
 include!(concat!(env!("OUT_DIR"), "/tokens.rs"));
 
@@ -23,6 +24,7 @@ pub enum Token<'a> {
     Number(&'a str),
     Character(&'a str),
     String(&'a str),
+    Comment(&'a str),
     OpenParenthesis,
     CloseParenthesis,
     VectorOpen,
@@ -42,6 +44,7 @@ impl<'a> Token<'a> {
             Self::Number(string) => string,
             Self::Character(string) => string,
             Self::String(string) => string,
+            Self::Comment(string) => string,
             Self::OpenParenthesis => OPEN_PARENTHESIS,
             Self::CloseParenthesis => CLOSE_PARENTHESIS,
             Self::VectorOpen => VECTOR_OPEN,
@@ -59,6 +62,23 @@ impl<'a> Display for Token<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
     }
+}
+
+fn read_comment<'a>(
+    src: &'a str,
+    start_index: usize,
+    mut index: usize,
+    length: usize,
+) -> Result<(Token<'a>, usize)> {
+    while index < length {
+        let character = &src[index..index + 1];
+        if NEWLINE.contains(character) {
+            return Ok((Token::Comment(&src[start_index..index]), index));
+        } else {
+            index += 1;
+        }
+    }
+    Ok((Token::Comment(&src[start_index..index]), index))
 }
 
 fn read_identifier<'a>(
@@ -124,6 +144,10 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                 token_list.push(Token::Dot);
                 index += 1;
             }
+            COMMENT => {
+                (token, index) = read_comment(src, index, index + 1, length)?;
+                token_list.push(token);
+            }
             character => {
                 if WHITESPACE.contains(character) {
                     index += 1;
@@ -162,5 +186,6 @@ mod test {
         let src = "(define x 4)";
         println!("{:?}", tokenize(src));
         println!("{:?}", tokenize("(+ 1 2)"));
+        println!("{:?}", tokenize("; this is a comment"));
     }
 }

@@ -12,7 +12,6 @@ const BINARY_DIGITS: &'static str = "01";
 const VERTICAL_LINE: &'static str = "|";
 const WHITESPACE: &'static str = " \t\n\r";
 const DELIMITERS: &'static str = "()\";";
-const COMMENT: &'static str = ";";
 const RESERVED: &'static str = "[]{}|";
 const EXACTNESS: [&'static str; 2] = ["#i", "#e"];
 const RADIX: [&'static str; 4] = ["#b", "#o", "#d", "#x"];
@@ -65,6 +64,7 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
     let subsequent =
         gen_set_from_slice(&[ASCII_LETTERS, SPECIAL_INITIALS, DIGITS, SPECIAL_SUBSEQUENTS]);
     let peculiar_identifier = gen_set_from_iterator(PECULIAR_IDENTIFIERS.into_iter());
+    let newline = gen_set_from_slice(&[NEWLINES]);
     write!(
         file,
         "const WHITESPACE: phf::Set<&'static str> = {};\n",
@@ -93,6 +93,12 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
         file,
         "const SUBSEQUENT: phf::Set<&'static str> = {};\n",
         subsequent.build()
+    )
+    .unwrap();
+    write!(
+        file,
+        "const NEWLINE: phf::Set<&'static str> = {};\n",
+        newline.build()
     )
     .unwrap();
 
