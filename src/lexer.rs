@@ -1,5 +1,4 @@
 use std::{
-    char,
     fmt::Display,
     ops::{Deref, Index, Range, RangeInclusive},
 };
