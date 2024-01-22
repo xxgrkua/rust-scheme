@@ -140,24 +140,27 @@ fn read_comment<'a>(
 }
 
 fn read_identifier<'a>(
-    src: &'a str,
+    buffer: &Buffer<'a>,
     start_index: usize,
     mut index: usize,
     length: usize,
 ) -> Result<(Token<'a>, usize)> {
     while index < length {
-        let character = &src[index..index + 1];
-        if SUBSEQUENT.contains(character) {
-            index += 1;
-        } else if DELIMITER.contains(character) {
-            return Ok((Token::Identifier(&src[start_index..index]), index));
-        } else {
-            return Err(TokenError::InvalidIdentifier(
-                src[start_index..index + 1].to_string(),
-            ));
+        match buffer.get(index) {
+            (character, _, end) if SUBSEQUENT.contains(character) => {
+                index = end;
+            }
+            (character, _, end) if DELIMITER.contains(character) => {
+                return Ok((Token::Identifier(&buffer.src[start_index..index]), index));
+            }
+            (_, _, end) => {
+                return Err(TokenError::InvalidIdentifier(
+                    buffer.src[start_index..end].to_string(),
+                ));
+            }
         }
     }
-    Ok((Token::Identifier(&src[start_index..index]), index))
+    Ok((Token::Identifier(&buffer.src[start_index..index]), index))
 }
 
 fn read_number<'a>(
@@ -230,7 +233,9 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                         token_list.push(Token::Identifier("..."));
                         index = end4;
                     } else {
-                        return Err(TokenError::InvalidIdentifier(src[start..end2].to_string()));
+                        return Err(TokenError::InvalidIdentifier(
+                            buffer.src[start..end2].to_string(),
+                        ));
                     }
                 }
             }
@@ -252,14 +257,16 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                     token_list.push(Token::Identifier(&buffer.src[start..end]));
                     index = second_end;
                 } else {
-                    return Err(TokenError::InvalidIdentifier(src[start..end].to_string()));
+                    return Err(TokenError::InvalidIdentifier(
+                        buffer.src[start..end].to_string(),
+                    ));
                 }
             }
             (character, _, end) if WHITESPACE.contains(character) => {
                 index = end;
             }
             (character, start, end) if INITIAL.contains(character) => {
-                (token, index) = read_identifier(src, start, end, length)?;
+                (token, index) = read_identifier(&buffer, start, end, length)?;
                 token_list.push(token);
             }
             (character, start, end) if DIGIT.contains(character) => {
