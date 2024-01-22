@@ -1,13 +1,15 @@
-use crate::lexer::Token;
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{lexer::Token, number::Number};
 
 pub enum Expression<'a> {
-    Integer(i32),
-    Float(f32),
+    Number(Number),
     Symbol(&'a str),
+    Pair(Box<Expression<'a>>, RefCell<Rc<Expression<'a>>>),
 }
 
 pub fn parse(expr: Vec<Token>) -> Expression {
-    let expr = Expression::Integer(0);
+    let expr = Expression::Number(Number::Integer(0));
 
     expr
 }

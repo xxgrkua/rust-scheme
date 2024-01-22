@@ -7,4 +7,7 @@ pub enum TokenError {
 
     #[error("invalid identifier: {0}")]
     InvalidIdentifier(String),
+
+    #[error("invalid constant literal: {0}")]
+    InvalidConstant(String),
 }

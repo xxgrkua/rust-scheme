@@ -20,20 +20,6 @@ const PECULIAR_IDENTIFIERS: [&'static str; 3] = ["...", "+", "-"];
 const SPECIAL_SUBSEQUENTS: &'static str = "+-@.";
 const NEWLINES: &'static str = "\n\r";
 
-macro_rules! make_set_from_str {
-    (@impls $($a:expr),*) => {{
-        let mut set = phf_codegen::Set::new();
-        $(
-            set.entry($a);
-        )*
-        set
-    }
-    };
-    ($($a:expr),*) => {
-        make_set_from_str!(@impls $($a),*)
-    };
-}
-
 fn gen_set_from_iterator<'a, I>(iter: I) -> phf_codegen::Set<&'a str>
 where
     I: Iterator<Item = &'a str>,
@@ -65,6 +51,7 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
         gen_set_from_slice(&[ASCII_LETTERS, SPECIAL_INITIALS, DIGITS, SPECIAL_SUBSEQUENTS]);
     let peculiar_identifier = gen_set_from_iterator(PECULIAR_IDENTIFIERS.into_iter());
     let newline = gen_set_from_slice(&[NEWLINES]);
+    let digit = gen_set_from_slice(&[DIGITS]);
     write!(
         file,
         "const WHITESPACE: phf::Set<&'static str> = {};\n",
@@ -99,6 +86,12 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
         file,
         "const NEWLINE: phf::Set<&'static str> = {};\n",
         newline.build()
+    )
+    .unwrap();
+    write!(
+        file,
+        "const DIGIT: phf::Set<&'static str> = {};\n",
+        digit.build()
     )
     .unwrap();
 
