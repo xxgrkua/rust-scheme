@@ -6,8 +6,20 @@ use crate::{lexer::Token, number::Number};
 pub enum Expression<'a> {
     Number(Number),
     Symbol(&'a str),
-    Pair(Box<Expression<'a>>, RefCell<Rc<Expression<'a>>>),
+    Pair(Link<'a>),
     Nil,
+}
+
+#[derive(Debug, Clone)]
+enum Link<'a> {
+    End(Rc<Expression<'a>>),
+    More(Rc<Node<'a>>),
+}
+
+#[derive(Debug, Clone)]
+struct Node<'a> {
+    car: Expression<'a>,
+    cdr: Link<'a>,
 }
 
 pub fn parse(expr: Vec<Token>) -> Expression {
