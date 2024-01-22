@@ -94,7 +94,9 @@ fn read_identifier<'a>(
         } else if DELIMITER.contains(character) {
             return Ok((Token::Identifier(&src[start_index..index]), index));
         } else {
-            return Err(TokenError::InvalidCharacter(character.to_string()));
+            return Err(TokenError::InvalidIdentifier(
+                src[start_index..index + 1].to_string(),
+            ));
         }
     }
     Ok((Token::Identifier(&src[start_index..index]), index))
