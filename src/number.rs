@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Number {
     Integer(i32),
     // Quotient(i32, i32),
