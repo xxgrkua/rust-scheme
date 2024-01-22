@@ -131,7 +131,7 @@ fn read_comment<'a>(
     while index < length {
         let (character, _, end) = buffer.get(index);
         if NEWLINE.contains(character) {
-            return Ok((Token::Comment(&buffer.src[start_index..index]), index));
+            return Ok((Token::Comment(&buffer.src[start_index..index]), end));
         } else {
             index = end;
         }
@@ -151,7 +151,7 @@ fn read_identifier<'a>(
                 index = end;
             }
             (character, _, end) if DELIMITER.contains(character) => {
-                return Ok((Token::Identifier(&buffer.src[start_index..index]), index));
+                return Ok((Token::Identifier(&buffer.src[start_index..index]), end));
             }
             (_, _, end) => {
                 return Err(TokenError::InvalidIdentifier(
