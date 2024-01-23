@@ -165,6 +165,31 @@ impl<'a> Index<RangeInclusive<usize>> for Buffer<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct TokenBuffer<'a> {
+    buffer: Vec<Token<'a>>,
+    index: usize,
+}
+
+impl<'a> TokenBuffer<'a> {
+    pub fn new(tokens: Vec<Token<'a>>) -> Self {
+        Self {
+            buffer: tokens,
+            index: 0,
+        }
+    }
+
+    pub fn peek_token(&self) -> &Token<'a> {
+        &self.buffer[self.index]
+    }
+
+    pub fn pop_token(&mut self) -> &Token<'a> {
+        let token = &self.buffer[self.index];
+        self.index += 1;
+        token
+    }
+}
+
 fn read_until_delimiter<'a>(buffer: &Buffer<'a>, start_index: usize) -> (&'a str, usize) {
     if start_index >= buffer.length {
         return ("", buffer.length);
@@ -173,7 +198,7 @@ fn read_until_delimiter<'a>(buffer: &Buffer<'a>, start_index: usize) -> (&'a str
     while index < buffer.length {
         let (character, _, end) = buffer.get(index);
         if DELIMITER.contains(character) {
-            return (&buffer.src[start_index..index], end);
+            return (&buffer.src[start_index..index], index);
         } else {
             index = end;
         }
@@ -282,7 +307,7 @@ fn read_string<'a>(
     Err(TokenError::MissingClosingQuote)
 }
 
-pub fn tokenize(src: &str) -> Result<Vec<Token>> {
+pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
     let buffer = Buffer::new(src);
     let mut token_list = vec![];
     let mut index = 0;
@@ -290,7 +315,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
     while index < buffer.length {
         match buffer.get(index) {
             ("", _, _) => {
-                return Ok(token_list);
+                return Ok(TokenBuffer::new(token_list));
             }
             (OPEN_PARENTHESIS, _, end) => {
                 token_list.push(Token::OpenParenthesis);
@@ -344,18 +369,19 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                 token_list.push(token);
             }
             ("#", start, end) => {
-                let (character2, _, end2) = buffer.get(end);
+                let (character2, end2) = read_until_delimiter(&buffer, end);
                 match character2 {
-                    "t" | "f" => {}
+                    "t" | "f" | "true" | "false" => {
+                        token_list.push(Token::Boolean(&buffer.src[start..end2]));
+                        index = end2;
+                    }
                     _ => {
                         return Err(TokenError::InvalidConstant(format!(
-                            "{}{}",
+                            "{}",
                             &buffer.src[start..end2],
-                            read_until_delimiter(&buffer, end2).0
                         )))
                     }
                 }
-                return Err(TokenError::InvalidCharacter("#".to_string()));
             }
             ("+", start, end) | ("-", start, end) => match buffer.get(end) {
                 (character2, _, end2) if DELIMITER.contains(character2) => {
@@ -396,7 +422,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
         }
     }
 
-    Ok(token_list)
+    Ok(TokenBuffer::new(token_list))
 }
 
 #[cfg(test)]
@@ -417,6 +443,7 @@ mod test {
         println!("{:?}", tokenize("(+ +2 3)"));
         println!("{:?}", tokenize("(+ ++2 3)"));
         println!("{:?}", tokenize("(+ #asda #aaa)"));
+        println!("{:?}", tokenize("(+ #true )"));
         println!("{:?}", tokenize("\"asdasd\""));
         println!("{:?}", tokenize(r#""asdasd (sdf sdf)\\\a ""#));
         println!("{:?}", tokenize(r#"(define a "asdasd (sdf sdf) ")"#));

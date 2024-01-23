@@ -1,6 +1,9 @@
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
-use crate::{lexer::Token, number::Number};
+use crate::{
+    lexer::{Token, TokenBuffer},
+    number::Number,
+};
 
 #[derive(Debug, Clone)]
 pub struct Expression<'a> {
@@ -38,6 +41,10 @@ struct Pair<'a> {
     cdr: Link<'a>,
 }
 
-pub fn parse(expr: Vec<Token>) -> Expression {
+pub fn parse<'a>(buffer: &TokenBuffer<'a>) -> Expression<'a> {
+    unimplemented!();
+}
+
+fn parse_tail<'a>(buffer: &TokenBuffer<'a>) -> Expression<'a> {
     unimplemented!();
 }
