@@ -27,7 +27,6 @@ pub enum Token<'a> {
     Identifier(&'a str),
     Boolean(&'a str),
     Number(&'a str),
-    Character(&'a str),
     String(&'a str),
     Comment(&'a str),
     OpenParenthesis,
@@ -47,7 +46,6 @@ impl<'a> Token<'a> {
             Self::Identifier(string) => string,
             Self::Boolean(string) => string,
             Self::Number(string) => string,
-            Self::Character(string) => string,
             Self::String(string) => string,
             Self::Comment(string) => string,
             Self::OpenParenthesis => OPEN_PARENTHESIS,
@@ -179,14 +177,18 @@ impl<'a> TokenBuffer<'a> {
         }
     }
 
-    pub fn peek_token(&self) -> &Token<'a> {
+    pub fn peek(&self) -> &Token<'a> {
         &self.buffer[self.index]
     }
 
-    pub fn pop_token(&mut self) -> &Token<'a> {
+    pub fn pop(&mut self) -> &Token<'a> {
         let token = &self.buffer[self.index];
         self.index += 1;
         token
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.index >= self.buffer.len()
     }
 }
 

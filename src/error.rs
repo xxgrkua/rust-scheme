@@ -20,3 +20,9 @@ pub enum TokenError {
     #[error("string missing closing quote")]
     MissingClosingQuote,
 }
+
+#[derive(Debug, Error)]
+pub enum ParseError {
+    #[error("unexpected end of file")]
+    UnexpectedEOF,
+}
