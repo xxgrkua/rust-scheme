@@ -10,4 +10,7 @@ pub enum TokenError {
 
     #[error("invalid constant literal: {0}")]
     InvalidConstant(String),
+
+    #[error("invalid number literal: {0}")]
+    InvalidNumber(String),
 }

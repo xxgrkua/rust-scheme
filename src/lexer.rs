@@ -17,6 +17,7 @@ const COMMA: &'static str = ",";
 const COMMA_AT: &'static str = ",@";
 const DOT: &'static str = ".";
 const COMMENT: &'static str = ";";
+const STRING: &'static str = "\"";
 
 include!(concat!(env!("OUT_DIR"), "/tokens.rs"));
 
@@ -94,7 +95,7 @@ impl<'a> Buffer<'a> {
                 }
             }
         }
-        ("", start, end)
+        ("", start, end.min(self.length))
     }
 }
 
@@ -122,13 +123,25 @@ impl<'a> Index<RangeInclusive<usize>> for Buffer<'a> {
     }
 }
 
+fn read_until_delimiter<'a>(buffer: &Buffer<'a>, start_index: usize) -> (&'a str, usize) {
+    let mut index = start_index + 1;
+    while index < buffer.length {
+        let (character, _, end) = buffer.get(index);
+        if DELIMITER.contains(character) {
+            return (&buffer.src[start_index..index], end);
+        } else {
+            index = end;
+        }
+    }
+    (&buffer.src[start_index..index], index)
+}
+
 fn read_comment<'a>(
     buffer: &Buffer<'a>,
     start_index: usize,
     mut index: usize,
-    length: usize,
 ) -> Result<(Token<'a>, usize)> {
-    while index < length {
+    while index < buffer.length {
         let (character, _, end) = buffer.get(index);
         if NEWLINE.contains(character) {
             return Ok((Token::Comment(&buffer.src[start_index..index]), end));
@@ -143,9 +156,8 @@ fn read_identifier<'a>(
     buffer: &Buffer<'a>,
     start_index: usize,
     mut index: usize,
-    length: usize,
 ) -> Result<(Token<'a>, usize)> {
-    while index < length {
+    while index < buffer.length {
         match buffer.get(index) {
             (character, _, end) if SUBSEQUENT.contains(character) => {
                 index = end;
@@ -154,9 +166,11 @@ fn read_identifier<'a>(
                 return Ok((Token::Identifier(&buffer.src[start_index..index]), end));
             }
             (_, _, end) => {
-                return Err(TokenError::InvalidIdentifier(
-                    buffer.src[start_index..end].to_string(),
-                ));
+                return Err(TokenError::InvalidIdentifier(format!(
+                    "{}{}",
+                    &buffer.src[start_index..end],
+                    read_until_delimiter(buffer, end).0
+                )));
             }
         }
     }
@@ -164,24 +178,31 @@ fn read_identifier<'a>(
 }
 
 fn read_number<'a>(
-    src: &'a str,
+    buffer: &Buffer<'a>,
     start_index: usize,
     mut index: usize,
-    length: usize,
 ) -> Result<(Token<'a>, usize)> {
-    while index < length {
-        let character = &src[index..index + 1];
-        if SUBSEQUENT.contains(character) {
-            index += 1;
-        } else if DELIMITER.contains(character) {
-            return Ok((Token::Number(&src[start_index..index]), index));
-        } else {
-            return Err(TokenError::InvalidIdentifier(
-                src[start_index..index + 1].to_string(),
-            ));
+    while index < buffer.length {
+        match buffer.get(index) {
+            (character, _, end) if DIGIT.contains(character) => {
+                index = end;
+            }
+            (".", _, end) => {
+                index = end;
+            }
+            (character, _, end) if DELIMITER.contains(character) => {
+                return Ok((Token::Number(&buffer.src[start_index..index]), end));
+            }
+            (_, _, end) => {
+                return Err(TokenError::InvalidNumber(format!(
+                    "{}{}",
+                    &buffer.src[start_index..end],
+                    read_until_delimiter(buffer, end).0
+                )));
+            }
         }
     }
-    Ok((Token::Number(&src[start_index..index]), index))
+    Ok((Token::Number(&buffer.src[start_index..index]), index))
 }
 
 pub fn tokenize(src: &str) -> Result<Vec<Token>> {
@@ -189,7 +210,6 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
     let mut token_list = vec![];
     let mut index = 0;
     let mut token: Token;
-    let length = src.len();
     while index < buffer.length {
         match buffer.get(index) {
             ("", _, _) => {
@@ -233,44 +253,58 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                         token_list.push(Token::Identifier("..."));
                         index = end4;
                     } else {
-                        return Err(TokenError::InvalidIdentifier(
-                            buffer.src[start..end2].to_string(),
-                        ));
+                        return Err(TokenError::InvalidIdentifier(format!(
+                            "{}{}",
+                            &buffer.src[start..end4],
+                            read_until_delimiter(&buffer, end4).0
+                        )));
                     }
                 }
             }
             (COMMENT, start, end) => {
-                (token, index) = read_comment(&buffer, start, end, length)?;
+                (token, index) = read_comment(&buffer, start, end)?;
                 token_list.push(token);
             }
             ("#", start, end) => {
                 let (character2, _, end2) = buffer.get(end);
                 match character2 {
                     "t" | "f" => {}
-                    _ => return Err(TokenError::InvalidConstant(buffer[start..end2].to_string())),
+                    _ => {
+                        return Err(TokenError::InvalidConstant(format!(
+                            "{}{}",
+                            &buffer.src[start..end2],
+                            read_until_delimiter(&buffer, end2).0
+                        )))
+                    }
                 }
                 return Err(TokenError::InvalidCharacter("#".to_string()));
             }
-            ("+", start, end) | ("-", start, end) => {
-                let (character, _, second_end) = buffer.get(end);
-                if DELIMITER.contains(character) {
+            ("+", start, end) | ("-", start, end) => match buffer.get(end) {
+                (character2, _, end2) if DELIMITER.contains(character2) => {
                     token_list.push(Token::Identifier(&buffer.src[start..end]));
-                    index = second_end;
-                } else {
-                    return Err(TokenError::InvalidIdentifier(
-                        buffer.src[start..end].to_string(),
-                    ));
+                    index = end2;
                 }
-            }
+                (character2, _, end2) if DIGIT.contains(character2) => {
+                    (token, index) = read_number(&buffer, start, end2)?;
+                    token_list.push(token);
+                }
+                (_, _, end2) => {
+                    return Err(TokenError::InvalidIdentifier(format!(
+                        "{}{}",
+                        &buffer.src[start..end2],
+                        read_until_delimiter(&buffer, end2).0
+                    )));
+                }
+            },
             (character, _, end) if WHITESPACE.contains(character) => {
                 index = end;
             }
             (character, start, end) if INITIAL.contains(character) => {
-                (token, index) = read_identifier(&buffer, start, end, length)?;
+                (token, index) = read_identifier(&buffer, start, end)?;
                 token_list.push(token);
             }
             (character, start, end) if DIGIT.contains(character) => {
-                (token, index) = read_number(src, start, end, length)?;
+                (token, index) = read_number(&buffer, start, end)?;
                 token_list.push(token);
             }
             (character, start, end) => {
@@ -295,6 +329,12 @@ mod test {
         println!("{:?}", tokenize("; this is a comment"));
         println!("{:?}", tokenize("(define a,b 4)"));
         println!("{:?}", tokenize("`(1 a ,@(maps s d))"));
+        println!("{:?}", tokenize("(... 1 2 3)"));
+        println!("{:?}", tokenize("(.... 1 2 3)"));
+        println!("{:?}", tokenize(".."));
+        println!("{:?}", tokenize("(+ +2 3)"));
+        println!("{:?}", tokenize("(+ ++2 3)"));
+        println!("{:?}", tokenize("(+ #asda #aaa)"));
         let src = "asdfvasgdsa df asdfvgwae sdfasdfva 我是大肥猪";
         let buffer = Buffer::new(src);
         let mut i = 0;
