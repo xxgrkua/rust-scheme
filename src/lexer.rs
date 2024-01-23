@@ -1,5 +1,4 @@
 use std::{
-    char::REPLACEMENT_CHARACTER,
     fmt::Display,
     ops::{Deref, Index, Range, RangeInclusive},
 };
@@ -67,6 +66,7 @@ impl<'a> Display for Token<'a> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct Buffer<'a> {
     src: &'a str,
@@ -75,6 +75,7 @@ struct Buffer<'a> {
     cache_index: usize,
 }
 
+#[allow(dead_code)]
 impl<'a> Buffer<'a> {
     fn new(src: &'a str) -> Self {
         Self {
@@ -417,9 +418,8 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                 (token, index) = read_number(&buffer, start, end)?;
                 token_list.push(token);
             }
-            (character, start, end) => {
-                println!("{} {} {}", character, start, end);
-                index = end;
+            (character, _, _) => {
+                return Err(TokenError::InvalidCharacter(character.to_string()));
             }
         }
     }
