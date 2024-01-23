@@ -13,4 +13,10 @@ pub enum TokenError {
 
     #[error("invalid number literal: {0}")]
     InvalidNumber(String),
+
+    #[error("invalid escape in string: {0}")]
+    InvalidStringEscape(String),
+
+    #[error("string missing closing quote")]
+    MissingClosingQuote,
 }

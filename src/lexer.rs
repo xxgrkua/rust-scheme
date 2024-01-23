@@ -1,4 +1,5 @@
 use std::{
+    char::REPLACEMENT_CHARACTER,
     fmt::Display,
     ops::{Deref, Index, Range, RangeInclusive},
 };
@@ -68,10 +69,12 @@ impl<'a> Display for Token<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Buffer<'a> {
     src: &'a str,
     length: usize,
+    cache: Vec<usize>,
+    cache_index: usize,
 }
 
 impl<'a> Buffer<'a> {
@@ -79,7 +82,46 @@ impl<'a> Buffer<'a> {
         Self {
             src,
             length: src.len(),
+            cache: vec![(0)],
+            cache_index: 0,
         }
+    }
+
+    fn peek_char(&mut self, num: usize) -> &'a str {
+        if (num == 0) || self.is_empty() {
+            return "";
+        }
+        let cached_length = self.cache.len() - 1 - self.cache_index;
+        if cached_length < num {
+            let diff = num - cached_length;
+            for _ in 0..diff {
+                let index = self.cache[self.cache.len() - 1];
+                let mut end = index + 1;
+                while end <= self.length {
+                    match self.src.get(index..end) {
+                        Some(_) => {
+                            self.cache.push(end);
+                            break;
+                        }
+                        None => {
+                            end += 1;
+                        }
+                    }
+                }
+            }
+        }
+        &self.src[self.cache[self.cache_index]
+            ..self.cache[(self.cache_index + num).min(self.cache.len() - 1)]]
+    }
+
+    fn pop_char(&mut self, num: usize) -> &'a str {
+        let chars = self.peek_char(num);
+        self.cache_index = (self.cache_index + num).min(self.cache.len() - 1);
+        return chars;
+    }
+
+    fn is_empty(&self) -> bool {
+        self.cache[self.cache_index] >= self.length
     }
 
     fn get(&self, index: usize) -> (&'a str, usize, usize) {
@@ -124,6 +166,9 @@ impl<'a> Index<RangeInclusive<usize>> for Buffer<'a> {
 }
 
 fn read_until_delimiter<'a>(buffer: &Buffer<'a>, start_index: usize) -> (&'a str, usize) {
+    if start_index >= buffer.length {
+        return ("", buffer.length);
+    }
     let mut index = start_index + 1;
     while index < buffer.length {
         let (character, _, end) = buffer.get(index);
@@ -205,6 +250,38 @@ fn read_number<'a>(
     Ok((Token::Number(&buffer.src[start_index..index]), index))
 }
 
+fn read_string<'a>(
+    buffer: &Buffer<'a>,
+    start_index: usize,
+    mut index: usize,
+) -> Result<(Token<'a>, usize)> {
+    let mut start_escape = false;
+    while index < buffer.length {
+        match buffer.get(index) {
+            ("\\", _, end) => {
+                index = end;
+                start_escape = !start_escape;
+            }
+            ("\"", _, end) => {
+                if start_escape {
+                    index = end;
+                    start_escape = false;
+                } else {
+                    return Ok((Token::String(&buffer.src[start_index..end]), end));
+                }
+            }
+            (character, _, end) => {
+                if start_escape {
+                    return Err(TokenError::InvalidStringEscape(format!("\\{}", character)));
+                } else {
+                    index = end;
+                }
+            }
+        }
+    }
+    Err(TokenError::MissingClosingQuote)
+}
+
 pub fn tokenize(src: &str) -> Result<Vec<Token>> {
     let buffer = Buffer::new(src);
     let mut token_list = vec![];
@@ -253,10 +330,11 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                         token_list.push(Token::Identifier("..."));
                         index = end4;
                     } else {
+                        println!("{} {} {}", end2, end3, end4);
                         return Err(TokenError::InvalidIdentifier(format!(
                             "{}{}",
-                            &buffer.src[start..end4],
-                            read_until_delimiter(&buffer, end4).0
+                            &buffer.src[start..end3],
+                            read_until_delimiter(&buffer, end3).0
                         )));
                     }
                 }
@@ -296,6 +374,10 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
                     )));
                 }
             },
+            (STRING, start, end) => {
+                (token, index) = read_string(&buffer, start, end)?;
+                token_list.push(token);
+            }
             (character, _, end) if WHITESPACE.contains(character) => {
                 index = end;
             }
@@ -335,13 +417,26 @@ mod test {
         println!("{:?}", tokenize("(+ +2 3)"));
         println!("{:?}", tokenize("(+ ++2 3)"));
         println!("{:?}", tokenize("(+ #asda #aaa)"));
+        println!("{:?}", tokenize("\"asdasd\""));
+        println!("{:?}", tokenize(r#""asdasd (sdf sdf)\\\a ""#));
+        println!("{:?}", tokenize(r#"(define a "asdasd (sdf sdf) ")"#));
+        println!("{:?}", tokenize(r#""""#));
+        println!("{:?}", tokenize(r#""asdasd"#));
         let src = "asdfvasgdsa df asdfvgwae sdfasdfva 我是大肥猪";
-        let buffer = Buffer::new(src);
+        let mut buffer = Buffer::new(src);
         let mut i = 0;
         while i < src.len() {
             let (character, start, end) = buffer.get(i);
             println!("{} {} {}", character, start, end);
             i = end;
+        }
+        println!("{}", buffer.peek_char(40));
+        loop {
+            let character = buffer.pop_char(3);
+            println!("{}", character);
+            if character == "" {
+                break;
+            }
         }
     }
 }
