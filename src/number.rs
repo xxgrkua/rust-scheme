@@ -230,8 +230,8 @@ impl TryFrom<&str> for Number {
     type Error = ParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        const COMPLEX: Lazy<Vec<Regex>> = Lazy::new(|| {
-            vec![
+        const COMPLEX: Lazy<[Regex; 6]> = Lazy::new(|| {
+            [
                 Regex::new(r#"^(?P<real>[+-]?[0-9]+(\.[0-9]+)?)(?P<im>[+-][0-9]+(\.[0-9]+)?)i$"#)
                     .unwrap(),
                 Regex::new(r#"^(?P<im>[+-]?[0-9]+(\.[0-9]+)?)i(?P<real>[+-][0-9]+(\.[0-9]+)?)$"#)
