@@ -15,10 +15,10 @@ const DELIMITERS: &'static str = "()\";";
 const RESERVED: &'static str = "[]{}|";
 const EXACTNESS: [&'static str; 2] = ["#i", "#e"];
 const RADIX: [&'static str; 4] = ["#b", "#o", "#d", "#x"];
-const BOOLEAN: [&'static str; 4] = ["#t", "#f", "#true", "#false"];
 const PECULIAR_IDENTIFIERS: [&'static str; 3] = ["...", "+", "-"];
 const SPECIAL_SUBSEQUENTS: &'static str = "+-@.";
 const NEWLINES: &'static str = "\n\r";
+const SIGNS: &'static str = "+-";
 
 fn gen_set_from_iterator<'a, I>(iter: I) -> phf_codegen::Set<&'a str>
 where
@@ -52,6 +52,7 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
     let peculiar_identifier = gen_set_from_iterator(PECULIAR_IDENTIFIERS.into_iter());
     let newline = gen_set_from_slice(&[NEWLINES]);
     let digit = gen_set_from_slice(&[DIGITS]);
+    let sign = gen_set_from_slice(&[SIGNS]);
     write!(
         file,
         "const WHITESPACE: phf::Set<&'static str> = {};\n",
@@ -92,6 +93,12 @@ fn gen_token_set_code(out_dir: &Path) -> PathBuf {
         file,
         "const DIGIT: phf::Set<&'static str> = {};\n",
         digit.build()
+    )
+    .unwrap();
+    write!(
+        file,
+        "const SIGN: phf::Set<&'static str> = {};\n",
+        sign.build()
     )
     .unwrap();
 

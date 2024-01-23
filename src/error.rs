@@ -25,4 +25,7 @@ pub enum TokenError {
 pub enum ParseError {
     #[error("unexpected end of file")]
     UnexpectedEOF,
+
+    #[error("invalid number: {0}")]
+    InvalidNumber(String),
 }

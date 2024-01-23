@@ -60,10 +60,12 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
             }),
             _ => unreachable!(),
         },
-        Token::Number(number) => {
-            unimplemented!()
-        }
-        Token::Comment(_) => unimplemented!(),
+        Token::Number(number) => Ok(Expression {
+            content: Some(Rc::new(RefCell::new(ExpressionContent::Number(
+                Number::try_from(number)?,
+            )))),
+        }),
+        Token::Comment(_) => parse(buffer),
         Token::OpenParenthesis => parse_tail(buffer),
         _ => {
             unimplemented!()
@@ -102,6 +104,12 @@ mod tests {
         let mut buffer = tokenize("(#t #t #t)").unwrap();
         let expression = parse(&mut buffer).unwrap();
         // assert_eq!(expression.car().car().car().content, Some(1));
-        println!("{:?}", expression)
+        println!("{:?}", expression);
+        let mut buffer = tokenize("(1 2 3)").unwrap();
+        println!("{:?}", buffer);
+        println!("{:?}", parse(&mut buffer).unwrap());
+        let mut buffer = tokenize("(2.3@4 2.3+5i +i)").unwrap();
+        println!("{:?}", buffer);
+        println!("{:?}", parse(&mut buffer).unwrap());
     }
 }

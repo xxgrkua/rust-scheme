@@ -235,8 +235,8 @@ fn read_identifier<'a>(
             (character, _, end) if SUBSEQUENT.contains(character) => {
                 index = end;
             }
-            (character, _, end) if DELIMITER.contains(character) => {
-                return Ok((Token::Identifier(&buffer.src[start_index..index]), end));
+            (character, _, _) if DELIMITER.contains(character) => {
+                return Ok((Token::Identifier(&buffer.src[start_index..index]), index));
             }
             (_, _, end) => {
                 return Err(TokenError::InvalidIdentifier(format!(
@@ -260,11 +260,20 @@ fn read_number<'a>(
             (character, _, end) if DIGIT.contains(character) => {
                 index = end;
             }
+            (character, _, end) if SIGN.contains(character) => {
+                index = end;
+            }
             (".", _, end) => {
                 index = end;
             }
-            (character, _, end) if DELIMITER.contains(character) => {
-                return Ok((Token::Number(&buffer.src[start_index..index]), end));
+            ("@", _, end) => {
+                index = end;
+            }
+            ("i", _, end) => {
+                index = end;
+            }
+            (character, _, _) if DELIMITER.contains(character) => {
+                return Ok((Token::Number(&buffer.src[start_index..index]), index));
             }
             (_, _, end) => {
                 return Err(TokenError::InvalidNumber(format!(
@@ -392,6 +401,10 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                     index = end2;
                 }
                 (character2, _, end2) if DIGIT.contains(character2) => {
+                    (token, index) = read_number(&buffer, start, end2)?;
+                    token_list.push(token);
+                }
+                ("i", _, end2) => {
                     (token, index) = read_number(&buffer, start, end2)?;
                     token_list.push(token);
                 }
