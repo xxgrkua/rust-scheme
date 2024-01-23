@@ -274,3 +274,5 @@ impl TryFrom<&str> for Number {
         }
     }
 }
+
+// TODO: implement check_{operator} for Number
