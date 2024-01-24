@@ -49,13 +49,9 @@ struct Pair<'a> {
 
 pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     match *buffer.pop() {
-        Token::Identifier(identifier) => {
-            if identifier == "nil" {
-                Ok(Expression { content: None })
-            } else {
-                unimplemented!()
-            }
-        }
+        Token::Identifier(identifier) => Ok(Expression {
+            content: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(identifier)))),
+        }),
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
                 content: Some(Rc::new(RefCell::new(ExpressionContent::Boolean(true)))),
@@ -79,6 +75,8 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
             unimplemented!()
         }
         Token::VectorOpen => {
+            unimplemented!();
+            // TODO: this is wrong. To evaluate to a vector, it must be quoted.
             let vector = vec![];
             parse_vector(buffer, vector)
         }
