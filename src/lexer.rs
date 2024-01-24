@@ -307,12 +307,11 @@ fn read_string<'a>(
                     return Ok((Token::String(&buffer.src[start_index..end]), end));
                 }
             }
-            (character, _, end) => {
+            (_, _, end) => {
                 if start_escape {
-                    return Err(TokenError::InvalidStringEscape(format!("\\{}", character)));
-                } else {
-                    index = end;
+                    start_escape = false;
                 }
+                index = end;
             }
         }
     }

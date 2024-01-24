@@ -1,4 +1,8 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{
+    cell::RefCell,
+    fmt::{format, Display},
+    rc::Rc,
+};
 
 use crate::{
     error::ParseError,
@@ -70,7 +74,105 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
             )))),
         }),
         Token::String(string) => {
-            unimplemented!()
+            let mut result = String::new();
+            let mut start_escape = false;
+            let mut start_hex = false;
+            let mut hex_buffer = String::new();
+            for character in string.chars() {
+                match character {
+                    '\\' => {
+                        if start_escape {
+                            result.push('\\');
+                            start_escape = false;
+                        } else {
+                            start_escape = true;
+                        }
+                    }
+                    '"' => {
+                        if start_escape {
+                            result.push('"');
+                            start_escape = false;
+                        } else {
+                            // remove the first and last quote
+                            continue;
+                        }
+                    }
+                    'n' => {
+                        if start_escape {
+                            result.push('\n');
+                            start_escape = false;
+                        } else {
+                            result.push('n');
+                        }
+                    }
+                    'r' => {
+                        if start_escape {
+                            result.push('\r');
+                            start_escape = false;
+                        } else {
+                            result.push('r');
+                        }
+                    }
+                    't' => {
+                        if start_escape {
+                            result.push('\t');
+                            start_escape = false;
+                        } else {
+                            result.push('t');
+                        }
+                    }
+                    'b' => {
+                        if start_escape {
+                            result.push('\x08');
+                            start_escape = false;
+                        } else {
+                            result.push('b');
+                        }
+                    }
+                    'a' => {
+                        if start_escape {
+                            result.push('\x07');
+                            start_escape = false;
+                        } else {
+                            result.push('a');
+                        }
+                    }
+                    'x' => {
+                        if start_escape {
+                            start_hex = true;
+                        } else {
+                            result.push('x');
+                        }
+                    }
+                    ';' => {
+                        if start_hex {
+                            start_hex = false;
+                            start_escape = false;
+                            let hex = u32::from_str_radix(&hex_buffer, 16).map_err(|_| {
+                                ParseError::InvalidCharacterEscape(format!("\\x{}", hex_buffer))
+                            })?;
+                            result.push(char::from_u32(hex).ok_or(
+                                ParseError::InvalidCharacterEscape(format!("\\x{}", hex_buffer)),
+                            )?);
+                            hex_buffer.clear();
+                        } else {
+                            result.push(';');
+                        }
+                    }
+                    c => {
+                        if start_hex {
+                            hex_buffer.push(c);
+                        } else if start_escape {
+                            return Err(ParseError::InvalidCharacterEscape(format!("\\{}", c)));
+                        } else {
+                            result.push(c);
+                        }
+                    }
+                }
+            }
+            Ok(Expression {
+                content: Some(Rc::new(RefCell::new(ExpressionContent::String(result)))),
+            })
         }
         Token::Comment(_) => parse(buffer),
         Token::OpenParenthesis => parse_pair(buffer),

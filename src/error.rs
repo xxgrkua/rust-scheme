@@ -1,4 +1,4 @@
-use std::error;
+use std::{error, num::ParseIntError};
 
 use thiserror::Error;
 
@@ -15,9 +15,6 @@ pub enum TokenError {
 
     #[error("invalid number literal: {0}")]
     InvalidNumber(String),
-
-    #[error("invalid escape in string: {0}")]
-    InvalidStringEscape(String),
 
     #[error("string missing closing quote")]
     MissingCloseQuote,
@@ -36,6 +33,9 @@ pub enum ParseError {
 
     #[error("missing closing parenthesis")]
     MissingCLoseParenthesis,
+
+    #[error("invalid escape in string: {0}")]
+    InvalidCharacterEscape(String),
 }
 
 #[derive(Debug, Error)]
