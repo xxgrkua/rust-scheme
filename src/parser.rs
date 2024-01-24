@@ -71,9 +71,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }
         Token::Comment(_) => parse(buffer),
         Token::OpenParenthesis => parse_pair(buffer),
-        Token::CloseParenthesis => {
-            unimplemented!()
-        }
+        Token::CloseParenthesis => Err(ParseError::MissingOpenParenthesis),
         Token::VectorOpen => {
             unimplemented!();
             // TODO: this is wrong. To evaluate to a vector, it must be quoted.
@@ -129,7 +127,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
 
 fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     if buffer.is_empty() {
-        Err(ParseError::UnexpectedEOF)
+        Err(ParseError::MissingCLoseParenthesis)
     } else {
         match *buffer.peek() {
             Token::CloseParenthesis => {

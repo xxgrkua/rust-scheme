@@ -20,7 +20,7 @@ pub enum TokenError {
     InvalidStringEscape(String),
 
     #[error("string missing closing quote")]
-    MissingClosingQuote,
+    MissingCloseQuote,
 }
 
 #[derive(Debug, Error)]
@@ -30,6 +30,12 @@ pub enum ParseError {
 
     #[error("invalid number: {0}")]
     InvalidNumber(String),
+
+    #[error("missing opening parenthesis")]
+    MissingOpenParenthesis,
+
+    #[error("missing closing parenthesis")]
+    MissingCLoseParenthesis,
 }
 
 #[derive(Debug, Error)]

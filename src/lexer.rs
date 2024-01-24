@@ -316,7 +316,7 @@ fn read_string<'a>(
             }
         }
     }
-    Err(TokenError::MissingClosingQuote)
+    Err(TokenError::MissingCloseQuote)
 }
 
 pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
