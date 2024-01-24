@@ -387,6 +387,10 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                         token_list.push(Token::Boolean(&buffer.src[start..end2]));
                         index = end2;
                     }
+                    "(" => {
+                        token_list.push(Token::VectorOpen);
+                        index = end2;
+                    }
                     _ => {
                         return Err(TokenError::InvalidConstant(format!(
                             "{}",

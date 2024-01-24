@@ -76,8 +76,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         Token::OpenParenthesis => parse_pair(buffer),
         Token::CloseParenthesis => Err(ParseError::MissingOpenParenthesis),
         Token::VectorOpen => {
-            unimplemented!();
-            // TODO: this is wrong. To evaluate to a vector, it must be quoted.
+            // vector is self-evaluating in R7RS
             let vector = vec![];
             parse_vector(buffer, vector)
         }
