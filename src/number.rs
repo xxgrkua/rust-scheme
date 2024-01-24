@@ -11,8 +11,8 @@ use crate::error::ParseError;
 #[derive(Debug, Clone, Copy)]
 pub enum Number {
     Integer(i32),
+    // Rational(i32, i32),
     Real(f64),
-    // Gaussian(i32, i32),
     Complex(f64, f64),
 }
 

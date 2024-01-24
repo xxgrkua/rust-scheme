@@ -33,7 +33,7 @@ pub enum Token<'a> {
     VectorOpen,
     ByteVectorOpen,
     Quote,
-    Backquote,
+    BackQuote,
     Comma,
     CommaAt,
     Dot,
@@ -52,7 +52,7 @@ impl<'a> Token<'a> {
             Self::VectorOpen => VECTOR_OPEN,
             Self::ByteVectorOpen => BYTE_VECTOR_OPEN,
             Self::Quote => QUOTE,
-            Self::Backquote => BACKQUOTE,
+            Self::BackQuote => BACKQUOTE,
             Self::Comma => COMMA,
             Self::CommaAt => COMMA_AT,
             Self::Dot => DOT,
@@ -342,7 +342,7 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                 index = end;
             }
             (BACKQUOTE, _, end) => {
-                token_list.push(Token::Backquote);
+                token_list.push(Token::BackQuote);
                 index = end;
             }
             (COMMA, _, end) => {

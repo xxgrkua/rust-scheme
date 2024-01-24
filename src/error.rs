@@ -1,3 +1,5 @@
+use std::error;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -28,4 +30,28 @@ pub enum ParseError {
 
     #[error("invalid number: {0}")]
     InvalidNumber(String),
+}
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("{0} is not implemented")]
+    Unimplemented(String),
+
+    #[error("{0}")]
+    TokenError(TokenError),
+
+    #[error("{0}")]
+    ParseError(ParseError),
+}
+
+impl From<TokenError> for Error {
+    fn from(error: TokenError) -> Self {
+        Self::TokenError(error)
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(error: ParseError) -> Self {
+        Self::ParseError(error)
+    }
 }

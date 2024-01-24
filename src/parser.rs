@@ -38,6 +38,7 @@ enum ExpressionContent<'a> {
     Boolean(bool),
     Symbol(&'a str),
     PairLink(Pair<'a>),
+    VectorLink(Vec<Link<'a>>),
 }
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,11 @@ struct Pair<'a> {
 pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     match *buffer.pop() {
         Token::Identifier(identifier) => {
-            unimplemented!()
+            if identifier == "nil" {
+                Ok(Expression { content: None })
+            } else {
+                unimplemented!()
+            }
         }
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
@@ -65,29 +70,106 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 Number::try_from(number)?,
             )))),
         }),
+        Token::String(string) => {
+            unimplemented!()
+        }
         Token::Comment(_) => parse(buffer),
-        Token::OpenParenthesis => parse_tail(buffer),
-        _ => {
+        Token::OpenParenthesis => parse_pair(buffer),
+        Token::CloseParenthesis => {
+            unimplemented!()
+        }
+        Token::VectorOpen => {
+            let vector = vec![];
+            parse_vector(buffer, vector)
+        }
+        Token::ByteVectorOpen => unimplemented!(),
+        Token::Quote => {
+            let rest = parse(buffer)?;
+            Ok(Expression {
+                content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                    car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol("quote")))),
+                    cdr: rest.content.clone(),
+                })))),
+            })
+        }
+        Token::BackQuote => {
+            let rest = parse(buffer)?;
+            Ok(Expression {
+                content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                    car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
+                        "quasiquote",
+                    )))),
+                    cdr: rest.content.clone(),
+                })))),
+            })
+        }
+        Token::Comma => {
+            let rest = parse(buffer)?;
+            Ok(Expression {
+                content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                    car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol("unquote")))),
+                    cdr: rest.content.clone(),
+                })))),
+            })
+        }
+        Token::CommaAt => {
+            let rest = parse(buffer)?;
+            Ok(Expression {
+                content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                    car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
+                        "unquote-splicing",
+                    )))),
+                    cdr: rest.content.clone(),
+                })))),
+            })
+        }
+        Token::Dot => {
             unimplemented!()
         }
     }
 }
 
-fn parse_tail<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
+fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     if buffer.is_empty() {
         Err(ParseError::UnexpectedEOF)
     } else {
         match *buffer.peek() {
-            Token::CloseParenthesis => Ok(Expression { content: None }),
+            Token::CloseParenthesis => {
+                buffer.pop();
+                Ok(Expression { content: None })
+            }
             _ => {
                 let first = parse(buffer)?;
-                let rest = parse_tail(buffer)?;
+                let rest = parse_pair(buffer)?;
                 Ok(Expression {
                     content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
                         car: first.content.clone(),
                         cdr: rest.content.clone(),
                     })))),
                 })
+            }
+        }
+    }
+}
+
+fn parse_vector<'a>(
+    buffer: &mut TokenBuffer<'a>,
+    mut vector: Vec<Link<'a>>,
+) -> Result<Expression<'a>> {
+    if buffer.is_empty() {
+        Err(ParseError::UnexpectedEOF)
+    } else {
+        match *buffer.peek() {
+            Token::CloseParenthesis => {
+                buffer.pop();
+                Ok(Expression {
+                    content: Some(Rc::new(RefCell::new(ExpressionContent::VectorLink(vector)))),
+                })
+            }
+            _ => {
+                let first = parse(buffer)?;
+                vector.push(first.content.clone());
+                parse_vector(buffer, vector)
             }
         }
     }
