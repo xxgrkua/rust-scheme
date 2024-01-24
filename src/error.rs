@@ -2,7 +2,7 @@ use std::{error, num::ParseIntError};
 
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum TokenError {
     #[error("invalid character: {0}")]
     InvalidCharacter(String),
@@ -20,7 +20,7 @@ pub enum TokenError {
     MissingCloseQuote,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum ParseError {
     #[error("unexpected end of file")]
     EOF,
@@ -36,9 +36,12 @@ pub enum ParseError {
 
     #[error("invalid escape in string: {0}")]
     InvalidCharacterEscape(String),
+
+    #[error("only one object is allowed after a dot")]
+    TooMoreObjects,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("{0} is not implemented")]
     Unimplemented(String),

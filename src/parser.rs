@@ -12,7 +12,7 @@ use crate::{
 
 type Result<T> = std::result::Result<T, ParseError>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Expression<'a> {
     content: Link<'a>,
 }
@@ -35,7 +35,7 @@ impl<'a> Expression<'a> {
 
 type Link<'a> = Option<Rc<RefCell<ExpressionContent<'a>>>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum ExpressionContent<'a> {
     Number(Number),
     String(String),
@@ -45,7 +45,7 @@ enum ExpressionContent<'a> {
     VectorLink(Vec<Link<'a>>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Pair<'a> {
     car: Link<'a>,
     cdr: Link<'a>,
@@ -257,6 +257,18 @@ fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 buffer.pop();
                 Ok(Expression { content: None })
             }
+            Token::Dot => {
+                buffer.pop();
+                let rest = parse(buffer)?;
+                if buffer.is_empty() {
+                    Err(ParseError::MissingCLoseParenthesis)
+                } else {
+                    match *buffer.pop() {
+                        Token::CloseParenthesis => Ok(rest),
+                        _ => Err(ParseError::TooMoreObjects),
+                    }
+                }
+            }
             _ => {
                 let first = parse(buffer)?;
                 let rest = parse_pair(buffer)?;
@@ -317,6 +329,30 @@ mod tests {
         println!(
             "string parse: {:?}",
             parse(&mut tokenize(r#""sdfsdf sdf\n sdfsd sdf \x03B1; \" asd""#).unwrap())
+        );
+    }
+
+    #[test]
+    fn test_dotted_pair() {
+        assert_eq!(
+            parse(&mut tokenize("(1 . 2 3)").unwrap()),
+            Err(ParseError::TooMoreObjects)
+        );
+        assert_eq!(
+            parse(&mut tokenize("(1 2 3").unwrap()),
+            Err(ParseError::MissingCLoseParenthesis)
+        );
+        // assert_eq!(
+        //     parse(&mut tokenize("(1 2 3))").unwrap()),
+        //     Err(ParseError::MissingOpenParenthesis)
+        // );
+        assert_eq!(
+            parse(&mut tokenize("(1 2 3 4 . 5)").unwrap()),
+            parse(&mut tokenize("(1 . (2 . (3 . (4 . 5))))").unwrap())
+        );
+        assert_eq!(
+            parse(&mut tokenize("(a b c d e)").unwrap()),
+            parse(&mut tokenize("(a . (b . (c . (d . (e . ())))))").unwrap())
         );
     }
 }
