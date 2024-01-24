@@ -167,7 +167,7 @@ fn parse_vector<'a>(
     mut vector: Vec<Link<'a>>,
 ) -> Result<Expression<'a>> {
     if buffer.is_empty() {
-        Err(ParseError::EOF)
+        Err(ParseError::MissingCLoseParenthesis)
     } else {
         match *buffer.peek() {
             Token::CloseParenthesis => {
