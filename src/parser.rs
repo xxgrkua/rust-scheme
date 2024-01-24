@@ -48,6 +48,9 @@ struct Pair<'a> {
 }
 
 pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
+    if buffer.is_empty() {
+        return Err(ParseError::EOF);
+    }
     match *buffer.pop() {
         Token::Identifier(identifier) => Ok(Expression {
             content: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(identifier)))),
@@ -84,7 +87,10 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
             Ok(Expression {
                 content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
                     car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol("quote")))),
-                    cdr: rest.content.clone(),
+                    cdr: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                        car: rest.content.clone(),
+                        cdr: None,
+                    })))),
                 })))),
             })
         }
@@ -95,7 +101,10 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                     car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
                         "quasiquote",
                     )))),
-                    cdr: rest.content.clone(),
+                    cdr: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                        car: rest.content.clone(),
+                        cdr: None,
+                    })))),
                 })))),
             })
         }
@@ -104,7 +113,10 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
             Ok(Expression {
                 content: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
                     car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol("unquote")))),
-                    cdr: rest.content.clone(),
+                    cdr: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                        car: rest.content.clone(),
+                        cdr: None,
+                    })))),
                 })))),
             })
         }
@@ -115,7 +127,10 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                     car: Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
                         "unquote-splicing",
                     )))),
-                    cdr: rest.content.clone(),
+                    cdr: Some(Rc::new(RefCell::new(ExpressionContent::PairLink(Pair {
+                        car: rest.content.clone(),
+                        cdr: None,
+                    })))),
                 })))),
             })
         }
@@ -153,7 +168,7 @@ fn parse_vector<'a>(
     mut vector: Vec<Link<'a>>,
 ) -> Result<Expression<'a>> {
     if buffer.is_empty() {
-        Err(ParseError::UnexpectedEOF)
+        Err(ParseError::EOF)
     } else {
         match *buffer.peek() {
             Token::CloseParenthesis => {
@@ -189,5 +204,7 @@ mod tests {
         let mut buffer = tokenize("(2.3@4 2.3+5i +i)").unwrap();
         println!("{:?}", buffer);
         println!("{:?}", parse(&mut buffer).unwrap());
+        println!("quote parse: {:?}", parse(&mut tokenize("'x").unwrap()));
+        println!("parse empty: {:?}", parse(&mut tokenize("").unwrap()));
     }
 }

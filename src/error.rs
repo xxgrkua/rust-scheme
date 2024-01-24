@@ -26,7 +26,7 @@ pub enum TokenError {
 #[derive(Debug, Error)]
 pub enum ParseError {
     #[error("unexpected end of file")]
-    UnexpectedEOF,
+    EOF,
 
     #[error("invalid number: {0}")]
     InvalidNumber(String),
