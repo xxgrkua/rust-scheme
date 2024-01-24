@@ -161,7 +161,14 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                     }
                     c => {
                         if start_hex {
-                            hex_buffer.push(c);
+                            if c.is_digit(16) {
+                                hex_buffer.push(c);
+                            } else {
+                                return Err(ParseError::InvalidCharacterEscape(format!(
+                                    "\\x{}{}",
+                                    hex_buffer, c
+                                )));
+                            }
                         } else if start_escape {
                             return Err(ParseError::InvalidCharacterEscape(format!("\\{}", c)));
                         } else {
@@ -307,5 +314,9 @@ mod tests {
         println!("{:?}", parse(&mut buffer).unwrap());
         println!("quote parse: {:?}", parse(&mut tokenize("'x").unwrap()));
         println!("parse empty: {:?}", parse(&mut tokenize("").unwrap()));
+        println!(
+            "string parse: {:?}",
+            parse(&mut tokenize(r#""sdfsdf sdf\n sdfsd sdf \x03B1; \" asd""#).unwrap())
+        );
     }
 }
