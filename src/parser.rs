@@ -99,14 +99,17 @@ impl<'a> Display for Pair<'a> {
         loop {
             if let Some(expression) = &cdr.0 {
                 let expr = expression.clone();
-                let borrowed = expr.borrow();
-                if let ExpressionContent::PairLink(pair) = &*borrowed {
+                if let ExpressionContent::PairLink(pair) = &*expr.borrow() {
                     write!(f, " {}", pair.car)?;
                     cdr = pair.cdr.clone();
                 } else {
                     write!(f, " . {}", cdr)?;
                     break;
-                }
+                };
+                // the above semi-colon is important,
+                // or the value will be dropped while the it is still borrowed
+                // ref: https://smallcultfollowing.com/babysteps/blog/2023/03/15/temporary-lifetimes/
+                // ref: https://doc.rust-lang.org/nightly/reference/destructors.html#drop-scopes
             } else {
                 break;
             }
