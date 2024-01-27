@@ -197,7 +197,7 @@ fn read_until_delimiter<'a>(buffer: &Buffer<'a>, start_index: usize) -> (&'a str
     if start_index >= buffer.length {
         return ("", buffer.length);
     }
-    let mut index = start_index + 1;
+    let mut index = start_index;
     while index < buffer.length {
         let (character, _, end) = buffer.get(index);
         if DELIMITER.contains(character) {
@@ -386,15 +386,17 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                         token_list.push(Token::Boolean(&buffer.src[start..end2]));
                         index = end2;
                     }
-                    "(" => {
-                        token_list.push(Token::VectorOpen);
-                        index = end2;
-                    }
                     _ => {
-                        return Err(TokenError::InvalidConstant(format!(
-                            "{}",
-                            &buffer.src[start..end2],
-                        )))
+                        let (character3, _, end3) = buffer.get(end);
+                        if character3 == "(" {
+                            token_list.push(Token::VectorOpen);
+                            index = end3;
+                        } else {
+                            return Err(TokenError::InvalidConstant(format!(
+                                "{}",
+                                &buffer.src[start..end2],
+                            )));
+                        }
                     }
                 }
             }
