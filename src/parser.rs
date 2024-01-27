@@ -451,5 +451,9 @@ mod tests {
             parse(&mut tokenize("(a b c d e)").unwrap()),
             parse(&mut tokenize("(a . (b . (c . (d . (e . ())))))").unwrap())
         );
+        println!(
+            "dotted pair parse: {}",
+            parse(&mut tokenize("(1 2 3 4 . 5)").unwrap()).unwrap()
+        );
     }
 }
