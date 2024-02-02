@@ -1,6 +1,7 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
+    data_model::{Expression, ExpressionContent, Link, Pair},
     error::ParseError,
     lexer::{Token, TokenBuffer},
     number::Number,
@@ -8,132 +9,27 @@ use crate::{
 
 type Result<T> = std::result::Result<T, ParseError>;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Expression<'a> {
-    content: Link<'a>,
-}
-
-impl<'a> Display for Expression<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content)
-    }
-}
-
-impl<'a> Expression<'a> {
-    pub fn car(&self) -> Self {
-        if let Link(Some(expression)) = &self.content {
-            if let ExpressionContent::PairLink(pair) = expression.as_ref() {
-                return Self {
-                    content: pair.car.clone(),
-                };
-            } else {
-                panic!()
-            }
-        } else {
-            panic!()
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Link<'a>(Option<Rc<ExpressionContent<'a>>>);
-
-impl<'a> Display for Link<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Self(Some(expression)) = self {
-            write!(f, "{}", expression)
-        } else {
-            write!(f, "()")
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-enum ExpressionContent<'a> {
-    Number(Number),
-    String(String),
-    Boolean(bool),
-    Symbol(&'a str),
-    PairLink(Pair<'a>),
-    VectorLink(Vec<Link<'a>>),
-}
-
-impl<'a> Display for ExpressionContent<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Number(number) => write!(f, "{}", number),
-            Self::String(string) => write!(f, "\"{}\"", string),
-            Self::Boolean(boolean) => {
-                if *boolean {
-                    write!(f, "#t")
-                } else {
-                    write!(f, "#f")
-                }
-            }
-            Self::Symbol(symbol) => write!(f, "{}", symbol),
-            Self::PairLink(pair) => write!(f, "{}", pair),
-            Self::VectorLink(vector) => {
-                write!(f, "#(")?;
-                for (index, link) in vector.iter().enumerate() {
-                    write!(f, "{}", link)?;
-                    if index != vector.len() - 1 {
-                        write!(f, " ")?;
-                    }
-                }
-                write!(f, ")")
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-struct Pair<'a> {
-    car: Link<'a>,
-    cdr: Link<'a>,
-}
-
-impl<'a> Display for Pair<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}", &self.car)?;
-        let mut cdr = &self.cdr;
-        loop {
-            if let Some(expression) = &cdr.0 {
-                if let ExpressionContent::PairLink(pair) = expression.as_ref() {
-                    write!(f, " {}", &pair.car)?;
-                    cdr = &pair.cdr;
-                } else {
-                    write!(f, " . {}", cdr)?;
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-        write!(f, ")")
-    }
-}
-
 pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     if buffer.is_empty() {
         return Err(ParseError::EOF);
     }
     match *buffer.pop() {
         Token::Identifier(identifier) => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::Symbol(identifier)))),
+            content: Link::More(Rc::new(ExpressionContent::Symbol(identifier))),
         }),
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
-                content: Link(Some(Rc::new(ExpressionContent::Boolean(true)))),
+                content: Link::More(Rc::new(ExpressionContent::Boolean(true))),
             }),
             "#f" | "#false" => Ok(Expression {
-                content: Link(Some(Rc::new(ExpressionContent::Boolean(false)))),
+                content: Link::More(Rc::new(ExpressionContent::Boolean(false))),
             }),
             _ => unreachable!(),
         },
         Token::Number(number) => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::Number(Number::try_from(
+            content: Link::More(Rc::new(ExpressionContent::Number(Number::try_from(
                 number,
-            )?)))),
+            )?))),
         }),
         Token::String(string) => {
             let mut result = String::new();
@@ -240,7 +136,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 }
             }
             Ok(Expression {
-                content: Link(Some(Rc::new(ExpressionContent::String(result)))),
+                content: Link::More(Rc::new(ExpressionContent::String(result))),
             })
         }
         Token::Comment(_) => parse(buffer),
@@ -253,40 +149,40 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }
         Token::ByteVectorOpen => unimplemented!(),
         Token::Quote => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link(Some(Rc::new(ExpressionContent::Symbol("quote")))),
-                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+            content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link::More(Rc::new(ExpressionContent::Symbol("quote"))),
+                cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
-                    cdr: Link(None),
-                })))),
-            })))),
+                    cdr: Link::Nil,
+                }))),
+            }))),
         }),
         Token::BackQuote => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link(Some(Rc::new(ExpressionContent::Symbol("quasiquote")))),
-                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+            content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link::More(Rc::new(ExpressionContent::Symbol("quasiquote"))),
+                cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
-                    cdr: Link(None),
-                })))),
-            })))),
+                    cdr: Link::Nil,
+                }))),
+            }))),
         }),
         Token::Comma => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link(Some(Rc::new(ExpressionContent::Symbol("unquote")))),
-                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+            content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link::More(Rc::new(ExpressionContent::Symbol("unquote"))),
+                cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
-                    cdr: Link(None),
-                })))),
-            })))),
+                    cdr: Link::Nil,
+                }))),
+            }))),
         }),
         Token::CommaAt => Ok(Expression {
-            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link(Some(Rc::new(ExpressionContent::Symbol("unquote-splicing")))),
-                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+            content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link::More(Rc::new(ExpressionContent::Symbol("unquote-splicing"))),
+                cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
-                    cdr: Link(None),
-                })))),
-            })))),
+                    cdr: Link::Nil,
+                }))),
+            }))),
         }),
         Token::Dot => {
             unimplemented!()
@@ -301,9 +197,7 @@ fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         match *buffer.peek() {
             Token::CloseParenthesis => {
                 buffer.pop();
-                Ok(Expression {
-                    content: Link(None),
-                })
+                Ok(Expression { content: Link::Nil })
             }
             Token::Dot => {
                 buffer.pop();
@@ -321,10 +215,10 @@ fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 let first = parse(buffer)?;
                 let rest = parse_pair(buffer)?;
                 Ok(Expression {
-                    content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                    content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                         car: first.content,
                         cdr: rest.content,
-                    })))),
+                    }))),
                 })
             }
         }
@@ -335,20 +229,21 @@ fn parse_vector<'a>(
     buffer: &mut TokenBuffer<'a>,
     mut vector: Vec<Link<'a>>,
 ) -> Result<Expression<'a>> {
-    if buffer.is_empty() {
-        Err(ParseError::MissingCLoseParenthesis)
-    } else {
-        match *buffer.peek() {
-            Token::CloseParenthesis => {
-                buffer.pop();
-                Ok(Expression {
-                    content: Link(Some(Rc::new(ExpressionContent::VectorLink(vector)))),
-                })
-            }
-            _ => {
-                let first = parse(buffer)?;
-                vector.push(first.content.clone());
-                parse_vector(buffer, vector)
+    loop {
+        if buffer.is_empty() {
+            return Err(ParseError::MissingCLoseParenthesis);
+        } else {
+            match *buffer.peek() {
+                Token::CloseParenthesis => {
+                    buffer.pop();
+                    return Ok(Expression {
+                        content: Link::More(Rc::new(ExpressionContent::VectorLink(vector))),
+                    });
+                }
+                _ => {
+                    let first = parse(buffer)?;
+                    vector.push(first.content.clone());
+                }
             }
         }
     }
@@ -414,5 +309,13 @@ mod tests {
             "dotted pair parse: {}",
             parse(&mut tokenize("(1 2 3 4 . 5)").unwrap()).unwrap()
         );
+    }
+
+    #[test]
+    fn test() {
+        println!(
+            "test nested: {}",
+            parse(&mut tokenize("(1 2 3 #(4 5 6 (7 8 . 9)))").unwrap()).unwrap()
+        )
     }
 }
