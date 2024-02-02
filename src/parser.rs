@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{fmt::Display, rc::Rc};
 
 use crate::{
     error::ParseError,
@@ -22,7 +22,7 @@ impl<'a> Display for Expression<'a> {
 impl<'a> Expression<'a> {
     pub fn car(&self) -> Self {
         if let Link(Some(expression)) = &self.content {
-            if let ExpressionContent::PairLink(pair) = &*expression.borrow() {
+            if let ExpressionContent::PairLink(pair) = expression.as_ref() {
                 return Self {
                     content: pair.car.clone(),
                 };
@@ -36,12 +36,12 @@ impl<'a> Expression<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Link<'a>(Option<Rc<RefCell<ExpressionContent<'a>>>>);
+struct Link<'a>(Option<Rc<ExpressionContent<'a>>>);
 
 impl<'a> Display for Link<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Self(Some(expression)) = self {
-            write!(f, "{}", expression.borrow())
+            write!(f, "{}", expression)
         } else {
             write!(f, "()")
         }
@@ -95,13 +95,12 @@ struct Pair<'a> {
 impl<'a> Display for Pair<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}", &self.car)?;
-        let mut cdr = self.cdr.clone();
+        let mut cdr = &self.cdr;
         loop {
             if let Some(expression) = &cdr.0 {
-                let expr = expression.clone();
-                if let ExpressionContent::PairLink(pair) = &*expr.borrow() {
-                    write!(f, " {}", pair.car)?;
-                    cdr = pair.cdr.clone();
+                if let ExpressionContent::PairLink(pair) = expression.as_ref() {
+                    write!(f, " {}", &pair.car)?;
+                    cdr = &pair.cdr;
                 } else {
                     write!(f, " . {}", cdr)?;
                     break;
@@ -124,27 +123,21 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     }
     match *buffer.pop() {
         Token::Identifier(identifier) => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
-                identifier,
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::Symbol(identifier)))),
         }),
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
-                content: Link(Some(Rc::new(RefCell::new(ExpressionContent::Boolean(
-                    true,
-                ))))),
+                content: Link(Some(Rc::new(ExpressionContent::Boolean(true)))),
             }),
             "#f" | "#false" => Ok(Expression {
-                content: Link(Some(Rc::new(RefCell::new(ExpressionContent::Boolean(
-                    false,
-                ))))),
+                content: Link(Some(Rc::new(ExpressionContent::Boolean(false)))),
             }),
             _ => unreachable!(),
         },
         Token::Number(number) => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::Number(
-                Number::try_from(number)?,
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::Number(Number::try_from(
+                number,
+            )?)))),
         }),
         Token::String(string) => {
             let mut result = String::new();
@@ -251,9 +244,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 }
             }
             Ok(Expression {
-                content: Link(Some(Rc::new(RefCell::new(ExpressionContent::String(
-                    result,
-                ))))),
+                content: Link(Some(Rc::new(ExpressionContent::String(result)))),
             })
         }
         Token::Comment(_) => parse(buffer),
@@ -266,64 +257,40 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }
         Token::ByteVectorOpen => unimplemented!(),
         Token::Quote => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                Pair {
-                    car: Link(Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
-                        "quote",
-                    ))))),
-                    cdr: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                        Pair {
-                            car: parse(buffer)?.content,
-                            cdr: Link(None),
-                        },
-                    ))))),
-                },
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link(Some(Rc::new(ExpressionContent::Symbol("quote")))),
+                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                    car: parse(buffer)?.content,
+                    cdr: Link(None),
+                })))),
+            })))),
         }),
         Token::BackQuote => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                Pair {
-                    car: Link(Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
-                        "quasiquote",
-                    ))))),
-                    cdr: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                        Pair {
-                            car: parse(buffer)?.content,
-                            cdr: Link(None),
-                        },
-                    ))))),
-                },
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link(Some(Rc::new(ExpressionContent::Symbol("quasiquote")))),
+                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                    car: parse(buffer)?.content,
+                    cdr: Link(None),
+                })))),
+            })))),
         }),
         Token::Comma => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                Pair {
-                    car: Link(Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
-                        "unquote",
-                    ))))),
-                    cdr: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                        Pair {
-                            car: parse(buffer)?.content,
-                            cdr: Link(None),
-                        },
-                    ))))),
-                },
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link(Some(Rc::new(ExpressionContent::Symbol("unquote")))),
+                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                    car: parse(buffer)?.content,
+                    cdr: Link(None),
+                })))),
+            })))),
         }),
         Token::CommaAt => Ok(Expression {
-            content: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                Pair {
-                    car: Link(Some(Rc::new(RefCell::new(ExpressionContent::Symbol(
-                        "unquote-splicing",
-                    ))))),
-                    cdr: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                        Pair {
-                            car: parse(buffer)?.content,
-                            cdr: Link(None),
-                        },
-                    ))))),
-                },
-            ))))),
+            content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                car: Link(Some(Rc::new(ExpressionContent::Symbol("unquote-splicing")))),
+                cdr: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                    car: parse(buffer)?.content,
+                    cdr: Link(None),
+                })))),
+            })))),
         }),
         Token::Dot => {
             unimplemented!()
@@ -358,12 +325,10 @@ fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
                 let first = parse(buffer)?;
                 let rest = parse_pair(buffer)?;
                 Ok(Expression {
-                    content: Link(Some(Rc::new(RefCell::new(ExpressionContent::PairLink(
-                        Pair {
-                            car: first.content,
-                            cdr: rest.content,
-                        },
-                    ))))),
+                    content: Link(Some(Rc::new(ExpressionContent::PairLink(Pair {
+                        car: first.content,
+                        cdr: rest.content,
+                    })))),
                 })
             }
         }
@@ -381,9 +346,7 @@ fn parse_vector<'a>(
             Token::CloseParenthesis => {
                 buffer.pop();
                 Ok(Expression {
-                    content: Link(Some(Rc::new(RefCell::new(ExpressionContent::VectorLink(
-                        vector,
-                    ))))),
+                    content: Link(Some(Rc::new(ExpressionContent::VectorLink(vector)))),
                 })
             }
             _ => {
