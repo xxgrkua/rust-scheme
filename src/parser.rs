@@ -1,4 +1,4 @@
-use std::{fmt::Display, rc::Rc};
+use std::rc::Rc;
 
 use crate::{
     data_model::{Expression, ExpressionContent, Link, Pair},
@@ -9,13 +9,13 @@ use crate::{
 
 type Result<T> = std::result::Result<T, ParseError>;
 
-pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
+pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression> {
     if buffer.is_empty() {
         return Err(ParseError::EOF);
     }
     match *buffer.pop() {
         Token::Identifier(identifier) => Ok(Expression {
-            content: Link::More(Rc::new(ExpressionContent::Symbol(identifier))),
+            content: Link::More(Rc::new(ExpressionContent::Symbol(identifier.to_string()))),
         }),
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
@@ -150,7 +150,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         Token::ByteVectorOpen => unimplemented!(),
         Token::Quote => Ok(Expression {
             content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link::More(Rc::new(ExpressionContent::Symbol("quote"))),
+                car: Link::More(Rc::new(ExpressionContent::Symbol("quote".to_string()))),
                 cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
                     cdr: Link::Nil,
@@ -159,7 +159,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }),
         Token::BackQuote => Ok(Expression {
             content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link::More(Rc::new(ExpressionContent::Symbol("quasiquote"))),
+                car: Link::More(Rc::new(ExpressionContent::Symbol("quasiquote".to_string()))),
                 cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
                     cdr: Link::Nil,
@@ -168,7 +168,7 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }),
         Token::Comma => Ok(Expression {
             content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link::More(Rc::new(ExpressionContent::Symbol("unquote"))),
+                car: Link::More(Rc::new(ExpressionContent::Symbol("unquote".to_string()))),
                 cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
                     cdr: Link::Nil,
@@ -177,20 +177,20 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
         }),
         Token::CommaAt => Ok(Expression {
             content: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
-                car: Link::More(Rc::new(ExpressionContent::Symbol("unquote-splicing"))),
+                car: Link::More(Rc::new(ExpressionContent::Symbol(
+                    "unquote-splicing".to_string(),
+                ))),
                 cdr: Link::More(Rc::new(ExpressionContent::PairLink(Pair {
                     car: parse(buffer)?.content,
                     cdr: Link::Nil,
                 }))),
             }))),
         }),
-        Token::Dot => {
-            unimplemented!()
-        }
+        Token::Dot => Err(ParseError::InvalidDot),
     }
 }
 
-fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
+fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression> {
     if buffer.is_empty() {
         Err(ParseError::MissingCLoseParenthesis)
     } else {
@@ -225,10 +225,7 @@ fn parse_pair<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression<'a>> {
     }
 }
 
-fn parse_vector<'a>(
-    buffer: &mut TokenBuffer<'a>,
-    mut vector: Vec<Link<'a>>,
-) -> Result<Expression<'a>> {
+fn parse_vector<'a>(buffer: &mut TokenBuffer<'a>, mut vector: Vec<Link>) -> Result<Expression> {
     loop {
         if buffer.is_empty() {
             return Err(ParseError::MissingCLoseParenthesis);
@@ -242,7 +239,7 @@ fn parse_vector<'a>(
                 }
                 _ => {
                     let first = parse(buffer)?;
-                    vector.push(first.content.clone());
+                    vector.push(first.content);
                 }
             }
         }

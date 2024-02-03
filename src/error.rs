@@ -1,5 +1,3 @@
-use std::{error, num::ParseIntError};
-
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
@@ -39,6 +37,45 @@ pub enum ParseError {
 
     #[error("only one object is allowed after a dot")]
     TooMoreObjects,
+
+    #[error("dot is only allowed in the pair")]
+    InvalidDot,
+}
+
+#[derive(Debug, Error, PartialEq)]
+pub enum EvalError {
+    #[error("unknown identifier: {0}")]
+    UnknownIdentifier(String),
+
+    #[error("{0}")]
+    ApplyError(ApplyError),
+}
+
+#[derive(Debug, Error, PartialEq)]
+pub enum ApplyError {
+    #[error("invalid argument: {0}")]
+    InvalidArgument(InvalidArgument),
+
+    #[error("{0} is not a procedure")]
+    InvalidProcedure(String),
+}
+
+#[derive(Debug, Error, PartialEq)]
+pub enum InvalidArgument {
+    #[error("{0} is not a number")]
+    InvalidNumber(String),
+}
+
+impl From<InvalidArgument> for ApplyError {
+    fn from(error: InvalidArgument) -> Self {
+        Self::InvalidArgument(error)
+    }
+}
+
+impl From<ApplyError> for EvalError {
+    fn from(error: ApplyError) -> Self {
+        Self::ApplyError(error)
+    }
 }
 
 #[derive(Debug, Error, PartialEq)]
@@ -51,6 +88,9 @@ pub enum Error {
 
     #[error("{0}")]
     ParseError(ParseError),
+
+    #[error("{0}")]
+    EvalError(EvalError),
 }
 
 impl From<TokenError> for Error {
@@ -62,5 +102,11 @@ impl From<TokenError> for Error {
 impl From<ParseError> for Error {
     fn from(error: ParseError) -> Self {
         Self::ParseError(error)
+    }
+}
+
+impl From<EvalError> for Error {
+    fn from(error: EvalError) -> Self {
+        Self::EvalError(error)
     }
 }

@@ -53,6 +53,7 @@ impl Eq for Number {}
 impl Add for Number {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(lhs), Self::Integer(rhs)) => Self::Integer(lhs + rhs),
@@ -81,6 +82,7 @@ impl Add for Number {
 impl Sub for Number {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(lhs), Self::Integer(rhs)) => Self::Integer(lhs - rhs),
@@ -109,6 +111,7 @@ impl Sub for Number {
 impl Mul for Number {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(lhs), Self::Integer(rhs)) => Self::Integer(lhs * rhs),
@@ -138,6 +141,7 @@ impl Mul for Number {
 impl Div for Number {
     type Output = Self;
 
+    #[inline]
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Integer(lhs), Self::Integer(rhs)) => Self::Integer(lhs / rhs),
@@ -175,6 +179,7 @@ impl Div for Number {
 impl Neg for Number {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         match self {
             Self::Integer(value) => Self::Integer(-value),
@@ -185,28 +190,71 @@ impl Neg for Number {
 }
 
 impl AddAssign for Number {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
 impl SubAssign for Number {
+    #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
 impl MulAssign for Number {
+    #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
 
 impl DivAssign for Number {
+    #[inline]
     fn div_assign(&mut self, rhs: Self) {
         *self = *self / rhs;
     }
 }
+
+// ref: forward_ref_binop
+macro_rules! forward_ref {
+    (@impl $imp:ident, $method:ident for $t:ty, $u:ty) => {
+        impl<'a> $imp<$u> for &'a $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, other: $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(*self, other)
+            }
+        }
+
+        impl<'a> $imp<&'a $u> for $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, other: &'a $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(self, *other)
+            }
+        }
+
+        impl<'a, 'b> $imp<&'a $u> for &'b $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, other: &'a $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(*self, *other)
+            }
+        }
+    };
+    ($($imp:ident $method:ident),*) => {
+        $(
+            forward_ref!(@impl $imp, $method for Number, Number);
+        )*
+    };
+}
+
+forward_ref! { Add add, Sub sub, Mul mul, Div div }
 
 impl From<i32> for Number {
     fn from(value: i32) -> Self {
