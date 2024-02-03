@@ -360,13 +360,12 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                     index = end;
                 } else {
                     let (character3, _, end3) = buffer.get(end2);
-                    let (character4, _, end4) = buffer.get(end3);
+                    let (character4, _, _) = buffer.get(end3);
                     if (character2 == DOT) && (character3 == DOT) && DELIMITER.contains(character4)
                     {
                         token_list.push(Token::Identifier("..."));
-                        index = end4;
+                        index = end3;
                     } else {
-                        println!("{} {} {}", end2, end3, end4);
                         return Err(TokenError::InvalidIdentifier(format!(
                             "{}{}",
                             &buffer.src[start..end3],
@@ -401,9 +400,9 @@ pub fn tokenize<'a>(src: &'a str) -> Result<TokenBuffer<'a>> {
                 }
             }
             ("+", start, end) | ("-", start, end) => match buffer.get(end) {
-                (character2, _, end2) if DELIMITER.contains(character2) => {
+                (character2, _, _) if DELIMITER.contains(character2) => {
                     token_list.push(Token::Identifier(&buffer.src[start..end]));
-                    index = end2;
+                    index = end;
                 }
                 (character2, _, end2) if DIGIT.contains(character2) => {
                     (token, index) = read_number(&buffer, start, end2)?;

@@ -278,6 +278,8 @@ mod tests {
             "vector parse: {}",
             parse(&mut tokenize("#(1 2 3)").unwrap()).unwrap()
         );
+        println!("singleton tokenize {:?}", tokenize("(+)"));
+        println!("singleton parse {:?}", parse(&mut tokenize("(+)").unwrap()))
     }
 
     #[test]
