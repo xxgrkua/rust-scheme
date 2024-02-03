@@ -1,4 +1,5 @@
 use std::{
+    cell::Ref,
     fmt::Display,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
@@ -21,7 +22,25 @@ impl Display for Number {
         match self {
             Self::Integer(value) => write!(f, "{}", value),
             Self::Real(value) => write!(f, "{}", value),
-            Self::Complex(real, im) => write!(f, "{}+{}i", real, im),
+            Self::Complex(real, im) => {
+                if *im == 0.0 {
+                    write!(f, "{}", real)
+                } else if *real == 0.0 && *im == 1.0 {
+                    write!(f, "+i")
+                } else if *real == 0.0 && *im == -1.0 {
+                    write!(f, "-i")
+                } else if *real == 0.0 {
+                    write!(f, "{}i", im)
+                } else if *im == 1.0 {
+                    write!(f, "{}+i", real)
+                } else if *im == -1.0 {
+                    write!(f, "{}-i", real)
+                } else if *im > 0.0 {
+                    write!(f, "{}+{}i", real, im)
+                } else {
+                    write!(f, "{}{}i", real, im)
+                }
+            }
         }
     }
 }
@@ -278,7 +297,7 @@ impl TryFrom<&str> for Number {
     type Error = ParseError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        const COMPLEX: Lazy<[Regex; 6]> = Lazy::new(|| {
+        const COMPLEX: Lazy<[Regex; 7]> = Lazy::new(|| {
             [
                 Regex::new(r#"^(?P<real>[+-]?[0-9]+(\.[0-9]+)?)(?P<im>[+-][0-9]+(\.[0-9]+)?)i$"#)
                     .unwrap(),
@@ -286,9 +305,10 @@ impl TryFrom<&str> for Number {
                     .unwrap(),
                 Regex::new(r#"^(?P<real>[+-]?[0-9]+(\.[0-9]+)?)@(?P<im>[+-]?[0-9]+(\.[0-9]+)?)$"#)
                     .unwrap(),
-                Regex::new(r#"^(?<real>[+-]?[0-9]+(\.[0-9]+)?)[+-]i$"#).unwrap(),
+                Regex::new(r#"^(?<real>[+-]?[0-9]+(\.[0-9]+)?)(?<sign>[+-])i$"#).unwrap(),
+                Regex::new(r#"^(?P<sign>[+-])i(?P<real>[+-][0-9]+(\.[0-9]+)?)$"#).unwrap(),
                 Regex::new(r#"^(?<im>[+-]?[0-9]+(\.[0-9]+)?)i$"#).unwrap(),
-                Regex::new(r#"^[+-]i$"#).unwrap(),
+                Regex::new(r#"^(?P<sign>[+-])i$"#).unwrap(),
             ]
         });
         if let Ok(value) = value.parse::<i32>() {
@@ -314,7 +334,17 @@ impl TryFrom<&str> for Number {
                     .as_str()
                     .parse::<f64>()
                     .map_err(|_| ParseError::InvalidNumber(value.to_string()))?,
-                None => 1.0,
+                None => {
+                    if let Some(sign) = caps.name("sign") {
+                        match sign.as_str() {
+                            "+" => 1.0,
+                            "-" => -1.0,
+                            _ => 0.0,
+                        }
+                    } else {
+                        0.0
+                    }
+                }
             };
             Ok(Self::Complex(real, im))
         } else {

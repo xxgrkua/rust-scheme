@@ -64,6 +64,12 @@ pub enum ApplyError {
 pub enum InvalidArgument {
     #[error("{0} is not a number")]
     InvalidNumber(String),
+
+    #[error("too few arguments for {0}")]
+    TooFewArguments(String),
+
+    #[error("division by zero")]
+    ZeroDivisor,
 }
 
 impl From<InvalidArgument> for ApplyError {

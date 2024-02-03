@@ -281,7 +281,7 @@ enum SpecialForm {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Procedure {
+pub enum Procedure {
     Builtin(BuiltinProcedure),
     Lambda(LambdaProcedure),
 }
@@ -296,7 +296,7 @@ impl Display for Procedure {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct BuiltinProcedure {
+pub struct BuiltinProcedure {
     pub(crate) name: &'static str,
     pub(crate) function: fn(Vec<Value>) -> Result<Value, ApplyError>,
 }
@@ -308,10 +308,10 @@ impl Display for BuiltinProcedure {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct LambdaProcedure {
-    formals: Vec<String>,
-    body: Link,
-    frame: Frame,
+pub struct LambdaProcedure {
+    pub(crate) formals: Vec<String>,
+    pub(crate) body: Link,
+    pub(crate) frame: Frame,
 }
 
 impl Display for LambdaProcedure {
