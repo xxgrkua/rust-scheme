@@ -137,7 +137,10 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
                 }) = arg
                 {
                     if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                        if *number == Number::Integer(0) {
+                        if *number == Number::Integer(0)
+                            || *number == Number::Real(0.0)
+                            || *number == Number::Complex(0.0, 0.0)
+                        {
                             return Err(InvalidArgument::ZeroDivisor)?;
                         }
                         quotient = quotient / number;
@@ -149,7 +152,10 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
                 }
             }
         } else {
-            if quotient == Number::Integer(0) {
+            if quotient == Number::Integer(0)
+                || quotient == Number::Real(0.0)
+                || quotient == Number::Complex(0.0, 0.0)
+            {
                 return Err(InvalidArgument::ZeroDivisor)?;
             }
             quotient = Number::Integer(1) / quotient;
