@@ -138,7 +138,7 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
                 {
                     if let ExpressionContent::Number(number) = expression_content.as_ref() {
                         if *number == Number::Integer(0) {
-                            return Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+                            return Err(InvalidArgument::ZeroDivisor)?;
                         }
                         quotient = quotient / number;
                     } else {
