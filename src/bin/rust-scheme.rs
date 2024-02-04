@@ -1,6 +1,6 @@
 use std::io::{self, Stdin, Stdout, Write};
 
-use rust_scheme::{create_global_frame, eval, parse, tokenize};
+use rust_scheme::{create_global_frame, scheme_eval};
 
 fn read(stdout: &mut Stdout, stdin: &Stdin, buffer: &mut String) -> Result<usize, io::Error> {
     print!("scm> ");
@@ -14,23 +14,7 @@ fn main() {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     while read(&mut stdout, &stdin, &mut buffer).is_ok() {
-        let mut token_buffer = match tokenize(&buffer) {
-            Ok(tokens) => tokens,
-            Err(error) => {
-                println!("Error: {}", error);
-                buffer.clear();
-                continue;
-            }
-        };
-        let expression = match parse(&mut token_buffer) {
-            Ok(expression) => expression,
-            Err(error) => {
-                println!("Error: {}", error);
-                buffer.clear();
-                continue;
-            }
-        };
-        match eval(expression, &mut global, false) {
+        match scheme_eval(&buffer, &mut global) {
             Ok(value) => println!("{}", value),
             Err(error) => println!("Error: {}", error),
         }
