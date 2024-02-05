@@ -15,7 +15,9 @@ pub fn parse<'a>(buffer: &mut TokenBuffer<'a>) -> Result<Expression> {
     }
     match *buffer.pop() {
         Token::Identifier(identifier) => Ok(Expression {
-            content: Link::More(Rc::new(ExpressionContent::Symbol(identifier.to_string()))),
+            content: Link::More(Rc::new(ExpressionContent::Symbol(
+                identifier.to_ascii_lowercase(),
+            ))),
         }),
         Token::Boolean(value) => match value {
             "#t" | "#true" => Ok(Expression {
