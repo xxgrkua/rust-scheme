@@ -44,7 +44,7 @@ pub fn eval(
                     frame: frame.content,
                 }));
             }
-            if let Some(ExpressionContent::Symbol(symbol)) = pair.car.as_expression_content() {
+            if let Some(symbol) = pair.car.as_symbol() {
                 if SPECIAL_FORMS.contains_key(symbol) {
                     let special_form = SPECIAL_FORMS[symbol];
                     return Ok(special_form.apply(pair.cdr(), frame)?);

@@ -8,8 +8,12 @@ edition = "2021"
 [dependencies]
 once_cell = "1.19.0"
 phf = { version = "0.11.2", features = ["macros"] }
-regex = { version = "1.10.3", default-features = false, features = ["perf", "std"] }
+regex = { version = "1.10.3", default-features = false, features = [
+    "perf",
+    "std",
+] }
 thiserror = "1.0.56"
+wasm-bindgen = "0.2.90"
 
 [build-dependencies]
 phf = { version = "0.11.2", default-features = false }
@@ -17,3 +21,6 @@ phf_codegen = "0.11.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2.90"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
