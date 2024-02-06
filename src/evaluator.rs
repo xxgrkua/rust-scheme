@@ -37,53 +37,38 @@ pub fn eval(
     tail_content: bool,
 ) -> Result<Value, EvalError> {
     match expression.content.as_expression_content() {
-        Some(content) => match content {
-            ExpressionContent::PairLink(pair) => {
-                if tail_content {
-                    return Ok(Value::Thunk(Thunk {
-                        content: expression.content.clone(),
-                        frame: frame.content,
-                    }));
-                }
-                if let Some(ExpressionContent::Symbol(symbol)) = pair.car.as_expression_content() {
-                    if SPECIAL_FORMS.contains_key(symbol) {
-                        let special_form = SPECIAL_FORMS[symbol];
-                        return Ok(special_form.apply(pair.cdr(), frame)?);
-                    }
-                }
-                let operator = eval(
-                    Expression {
-                        content: pair.car.clone(),
-                    },
-                    frame,
-                    false,
-                )?;
-                if let Value::Procedure(procedure) = operator {
-                    let mut operands = vec![];
-                    for expression_content in pair.cdr.iter() {
-                        operands.push(eval(
-                            Expression {
-                                content: expression_content.clone(),
-                            },
-                            frame,
-                            false,
-                        )?);
-                    }
-                    Ok(procedure.apply(operands, frame)?)
-                } else {
-                    Err(ApplyError::InvalidProcedure(operator.to_string()))?
+        Some(ExpressionContent::PairLink(pair)) => {
+            if tail_content {
+                return Ok(Value::Thunk(Thunk {
+                    content: expression.content.clone(),
+                    frame: frame.content,
+                }));
+            }
+            if let Some(ExpressionContent::Symbol(symbol)) = pair.car.as_expression_content() {
+                if SPECIAL_FORMS.contains_key(symbol) {
+                    let special_form = SPECIAL_FORMS[symbol];
+                    return Ok(special_form.apply(pair.cdr(), frame)?);
                 }
             }
-            ExpressionContent::Promise(promise) => {
-                unimplemented!()
+            let operator = eval(pair.car().into(), frame, false)?;
+            if let Value::Procedure(procedure) = operator {
+                let mut operands = vec![];
+                for expression_content in pair.cdr.iter() {
+                    operands.push(eval(expression_content.clone().into(), frame, false)?);
+                }
+                Ok(procedure.apply(operands, frame)?)
+            } else {
+                Err(ApplyError::InvalidProcedure(operator.to_string()))?
             }
-            ExpressionContent::Symbol(symbol) => match frame.lookup(symbol) {
-                Some(value) => Ok(value.clone()),
-                None => Err(EvalError::UnknownIdentifier(symbol.to_string())),
-            },
-            _ => Ok(Value::Expression(expression)),
+        }
+        Some(ExpressionContent::Promise(promise)) => {
+            unimplemented!()
+        }
+        Some(ExpressionContent::Symbol(symbol)) => match frame.lookup(symbol) {
+            Some(value) => Ok(value.clone()),
+            None => Err(EvalError::UnknownIdentifier(symbol.to_string())),
         },
-        _ => Ok(Value::Expression(expression)),
+        _ => Ok(expression.into()),
     }
 }
 
