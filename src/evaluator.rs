@@ -1,9 +1,7 @@
-use std::rc::Rc;
-
 use crate::{
     data_model::{
-        BuiltinProcedure, Expression, ExpressionContent, Frame, LambdaProcedure, Link, Pair,
-        Procedure, SpecialForm, Thunk, Value,
+        BuiltinProcedure, Expression, ExpressionContent, Frame, LambdaProcedure, Link, Procedure,
+        SpecialForm, Thunk, Value,
     },
     error::{invalid_symbol, ApplyError, EvalError, InvalidArgument},
 };
@@ -38,7 +36,7 @@ pub fn eval(
     frame: &mut Frame,
     tail_content: bool,
 ) -> Result<Value, EvalError> {
-    match expression.content.as_deref() {
+    match expression.content.as_expression_content() {
         Some(content) => match content {
             ExpressionContent::PairLink(pair) => {
                 if tail_content {
@@ -47,7 +45,7 @@ pub fn eval(
                         frame: frame.content,
                     }));
                 }
-                if let Some(ExpressionContent::Symbol(symbol)) = pair.car.as_deref() {
+                if let Some(ExpressionContent::Symbol(symbol)) = pair.car.as_expression_content() {
                     if SPECIAL_FORMS.contains_key(symbol) {
                         let special_form = SPECIAL_FORMS[symbol];
                         return Ok(special_form.apply(pair.cdr(), frame)?);
@@ -127,47 +125,27 @@ fn validate_number_of_arguments(
 
 fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
     validate_number_of_arguments("define", 2, usize::MAX, args.len())?;
-    match args.as_deref() {
-        Some(ExpressionContent::PairLink(pair)) => match pair.car.as_deref() {
-            Some(ExpressionContent::Symbol(name)) => {
-                validate_number_of_arguments("define", 2, 2, args.len())?;
-                let value = eval(
-                    Expression {
-                        content: match pair.cdr.as_deref().unwrap() {
-                            ExpressionContent::PairLink(pair) => pair.car.clone(),
-                            _ => unreachable!(),
-                        },
-                    },
-                    frame,
-                    false,
-                )?;
+    let pair = args.as_pair().unwrap();
+    match pair.car.as_expression_content() {
+        Some(ExpressionContent::Symbol(name)) => {
+            validate_number_of_arguments("define", 2, 2, args.len())?;
+            let value = eval(pair.cdr.as_pair().unwrap().car().into(), frame, false)?;
+            frame.define(name, value);
+            Ok(pair.car().into())
+        }
+        Some(ExpressionContent::PairLink(params)) => {
+            if let Some(name) = params.car.as_symbol() {
+                let value = do_lambda_form(Link::new_pair(params.cdr(), pair.cdr()), frame)?;
                 frame.define(name, value);
-                Ok(Value::Expression(Expression {
-                    content: pair.car.clone(),
-                }))
+                Ok(params.car().into())
+            } else {
+                Err(invalid_symbol(&params.car))?
             }
-            Some(ExpressionContent::PairLink(params)) => match params.car.as_deref() {
-                Some(ExpressionContent::Symbol(name)) => {
-                    let value = do_lambda_form(
-                        Link::More(Rc::new(ExpressionContent::PairLink(Pair {
-                            car: params.cdr.clone(),
-                            cdr: pair.cdr.clone(),
-                        }))),
-                        frame,
-                    )?;
-                    frame.define(name, value);
-                    Ok(Value::Expression(Expression {
-                        content: params.car.clone(),
-                    }))
-                }
-                _ => Err(invalid_symbol(&params.car))?,
-            },
-            _ => Err(InvalidArgument::InvalidType(
-                pair.car.to_string(),
-                "symbol or pair".to_string(),
-            ))?,
-        },
-        _ => unreachable!(),
+        }
+        _ => Err(InvalidArgument::InvalidType(
+            pair.car.to_string(),
+            "symbol or pair".to_string(),
+        ))?,
     }
 }
 
@@ -185,13 +163,7 @@ fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
             args.len(),
         ))?
     } else {
-        if let Some(ExpressionContent::PairLink(pair)) = args.as_deref() {
-            Ok(Value::Expression(Expression {
-                content: pair.car(),
-            }))
-        } else {
-            unreachable!()
-        }
+        Ok(args.as_pair().unwrap().car().into())
     }
 }
 

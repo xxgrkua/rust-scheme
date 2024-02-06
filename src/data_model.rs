@@ -44,7 +44,7 @@ impl Expression {
     }
 
     pub(crate) fn as_content(&self) -> Option<&ExpressionContent> {
-        self.content.as_deref()
+        self.content.as_expression_content()
     }
 
     pub fn as_number(&self) -> Option<&Number> {
@@ -153,13 +153,11 @@ pub(crate) enum Link {
 }
 
 impl Link {
-    pub fn as_ref(&self) -> Option<&Rc<ExpressionContent>> {
-        match self {
-            Self::More(expression) => Some(&expression),
-            Self::Nil => None,
-        }
+    pub(crate) fn new_pair(car: Link, cdr: Link) -> Self {
+        Self::More(Rc::new(ExpressionContent::PairLink(Pair { car, cdr })))
     }
-    pub fn as_deref(&self) -> Option<&ExpressionContent> {
+
+    pub fn as_expression_content(&self) -> Option<&ExpressionContent> {
         match self {
             Self::More(expression) => Some(expression.deref()),
             Self::Nil => None,
@@ -175,59 +173,80 @@ impl Link {
     }
 
     pub fn is_number(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::Number(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::Number(_))
+        )
     }
 
     pub fn is_symbol(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::Symbol(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::Symbol(_))
+        )
     }
 
     pub fn is_string(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::String(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::String(_))
+        )
     }
 
     pub fn is_boolean(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::Boolean(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::Boolean(_))
+        )
     }
 
     pub fn is_pair(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::PairLink(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::PairLink(_))
+        )
     }
 
     pub fn is_vector(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::VectorLink(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::VectorLink(_))
+        )
     }
 
     pub fn is_promise(&self) -> bool {
-        matches!(self.as_deref(), Some(ExpressionContent::Promise(_)))
+        matches!(
+            self.as_expression_content(),
+            Some(ExpressionContent::Promise(_))
+        )
     }
 
     pub fn as_number(&self) -> Option<&Number> {
-        self.as_deref()?.as_number()
+        self.as_expression_content()?.as_number()
     }
 
     pub fn as_string(&self) -> Option<&str> {
-        self.as_deref()?.as_string()
+        self.as_expression_content()?.as_string()
     }
 
     pub fn as_boolean(&self) -> Option<&bool> {
-        self.as_deref()?.as_boolean()
+        self.as_expression_content()?.as_boolean()
     }
 
     pub fn as_symbol(&self) -> Option<&str> {
-        self.as_deref()?.as_symbol()
+        self.as_expression_content()?.as_symbol()
     }
 
     pub fn as_pair(&self) -> Option<&Pair> {
-        self.as_deref()?.as_pair()
+        self.as_expression_content()?.as_pair()
     }
 
     pub fn as_vector(&self) -> Option<&Vec<Link>> {
-        self.as_deref()?.as_vector()
+        self.as_expression_content()?.as_vector()
     }
 
     pub fn as_promise(&self) -> Option<&Promise> {
-        self.as_deref()?.as_promise()
+        self.as_expression_content()?.as_promise()
     }
 }
 
@@ -427,6 +446,16 @@ impl<'a> Display for ExpressionContent {
     }
 }
 
+pub(crate) trait AsSymbol {
+    fn as_symbol(&self) -> ExpressionContent;
+}
+
+impl AsSymbol for str {
+    fn as_symbol(&self) -> ExpressionContent {
+        ExpressionContent::Symbol(self.to_string())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Pair {
     pub(crate) car: Link,
@@ -471,13 +500,14 @@ pub(crate) struct Iter<'a> {
 impl<'a> Iterator for Iter<'a> {
     type Item = &'a Link;
     fn next(&mut self) -> Option<Self::Item> {
-        self.next.and_then(|content| match content.as_deref() {
-            Some(ExpressionContent::PairLink(pair)) => {
-                self.next = Some(&pair.cdr);
-                Some(&pair.car)
-            }
-            _ => None,
-        })
+        self.next
+            .and_then(|content| match content.as_expression_content() {
+                Some(ExpressionContent::PairLink(pair)) => {
+                    self.next = Some(&pair.cdr);
+                    Some(&pair.car)
+                }
+                _ => None,
+            })
     }
 }
 
