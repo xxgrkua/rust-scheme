@@ -100,7 +100,7 @@ impl From<ApplyError> for EvalError {
 
 impl From<InvalidArgument> for EvalError {
     fn from(error: InvalidArgument) -> Self {
-        Self::ApplyError(ApplyError::InvalidArgument(error))
+        Self::from(error)
     }
 }
 

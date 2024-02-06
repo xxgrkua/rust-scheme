@@ -1,13 +1,20 @@
 use crate::{
-    builtin::math::{ADD, DIV, MUL, SUB},
-    data_model::{Frame, Procedure, Value},
+    builtin::{
+        math::{ADD, DIV, MUL, SUB},
+        pair::{CAR, IS_PAIR},
+    },
+    data_model::Frame,
 };
 
 pub fn create_global_frame() -> Frame {
     let mut frame = Frame::new();
-    frame.define("+", Value::Procedure(Procedure::Builtin(ADD)));
-    frame.define("-", Value::Procedure(Procedure::Builtin(SUB)));
-    frame.define("*", Value::Procedure(Procedure::Builtin(MUL)));
-    frame.define("/", Value::Procedure(Procedure::Builtin(DIV)));
+    println!("frame");
+    frame.define("+", ADD.into());
+    frame.define("-", SUB.into());
+    frame.define("*", MUL.into());
+    frame.define("/", DIV.into());
+
+    frame.define("pair?", IS_PAIR.into());
+    frame.define("car", CAR.into());
     frame
 }

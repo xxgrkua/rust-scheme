@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
+use crate::builtin;
 use crate::error::ApplyError;
 use crate::number::Number;
 
@@ -10,9 +11,83 @@ pub struct Expression {
     pub(crate) content: Link,
 }
 
+impl Expression {
+    pub fn is_number(&self) -> bool {
+        self.content.is_number()
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        self.content.is_symbol()
+    }
+
+    pub fn is_string(&self) -> bool {
+        self.content.is_string()
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        self.content.is_boolean()
+    }
+
+    pub fn is_pair(&self) -> bool {
+        self.content.is_pair()
+    }
+
+    pub fn is_vector(&self) -> bool {
+        self.content.is_vector()
+    }
+
+    pub fn is_promise(&self) -> bool {
+        self.content.is_promise()
+    }
+
+    pub(crate) fn as_link(&self) -> &Link {
+        &self.content
+    }
+
+    pub(crate) fn as_content(&self) -> Option<&ExpressionContent> {
+        self.content.as_deref()
+    }
+
+    pub fn as_number(&self) -> Option<&Number> {
+        self.content.as_number()
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        self.content.as_string()
+    }
+
+    pub fn as_boolean(&self) -> Option<&bool> {
+        self.content.as_boolean()
+    }
+
+    pub fn as_symbol(&self) -> Option<&str> {
+        self.content.as_symbol()
+    }
+
+    pub(crate) fn as_pair(&self) -> Option<&Pair> {
+        self.content.as_pair()
+    }
+
+    pub(crate) fn as_vector(&self) -> Option<&Vec<Link>> {
+        self.content.as_vector()
+    }
+
+    pub(crate) fn as_promise(&self) -> Option<&Promise> {
+        self.content.as_promise()
+    }
+}
+
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.content)
+    }
+}
+
+impl From<bool> for Expression {
+    fn from(boolean: bool) -> Self {
+        Self {
+            content: Link::from(boolean),
+        }
     }
 }
 
@@ -71,6 +146,46 @@ impl Link {
     pub fn is_promise(&self) -> bool {
         matches!(self.as_deref(), Some(ExpressionContent::Promise(_)))
     }
+
+    pub fn as_number(&self) -> Option<&Number> {
+        self.as_deref()?.as_number()
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        self.as_deref()?.as_string()
+    }
+
+    pub fn as_boolean(&self) -> Option<&bool> {
+        self.as_deref()?.as_boolean()
+    }
+
+    pub fn as_symbol(&self) -> Option<&str> {
+        self.as_deref()?.as_symbol()
+    }
+
+    pub fn as_pair(&self) -> Option<&Pair> {
+        self.as_deref()?.as_pair()
+    }
+
+    pub fn as_vector(&self) -> Option<&Vec<Link>> {
+        self.as_deref()?.as_vector()
+    }
+
+    pub fn as_promise(&self) -> Option<&Promise> {
+        self.as_deref()?.as_promise()
+    }
+}
+
+impl From<bool> for Link {
+    fn from(boolean: bool) -> Self {
+        Self::More(Rc::new(ExpressionContent::from(boolean)))
+    }
+}
+
+impl From<Link> for Expression {
+    fn from(link: Link) -> Self {
+        Self { content: link }
+    }
 }
 
 impl Display for Link {
@@ -91,6 +206,63 @@ pub(crate) enum ExpressionContent {
     PairLink(Pair),
     VectorLink(Vec<Link>),
     Promise(Promise),
+}
+
+impl ExpressionContent {
+    pub fn as_number(&self) -> Option<&Number> {
+        match self {
+            Self::Number(number) => Some(number),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            Self::String(string) => Some(string),
+            _ => None,
+        }
+    }
+
+    pub fn as_boolean(&self) -> Option<&bool> {
+        match self {
+            Self::Boolean(boolean) => Some(boolean),
+            _ => None,
+        }
+    }
+
+    pub fn as_symbol(&self) -> Option<&str> {
+        match self {
+            Self::Symbol(symbol) => Some(symbol),
+            _ => None,
+        }
+    }
+
+    pub fn as_pair(&self) -> Option<&Pair> {
+        match self {
+            Self::PairLink(pair) => Some(pair),
+            _ => None,
+        }
+    }
+
+    pub fn as_vector(&self) -> Option<&Vec<Link>> {
+        match self {
+            Self::VectorLink(vector) => Some(vector),
+            _ => None,
+        }
+    }
+
+    pub fn as_promise(&self) -> Option<&Promise> {
+        match self {
+            Self::Promise(promise) => Some(promise),
+            _ => None,
+        }
+    }
+}
+
+impl From<bool> for ExpressionContent {
+    fn from(boolean: bool) -> Self {
+        Self::Boolean(boolean)
+    }
 }
 
 impl<'a> Display for ExpressionContent {
@@ -183,7 +355,7 @@ pub(crate) struct Promise {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Thunk {
+pub struct Thunk {
     pub(crate) content: Link,
     pub(crate) frame: FrameLink,
 }
@@ -324,6 +496,12 @@ impl Display for BuiltinProcedure {
     }
 }
 
+impl From<BuiltinProcedure> for Procedure {
+    fn from(builtin: BuiltinProcedure) -> Self {
+        Self::Builtin(builtin)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct LambdaProcedure {
     pub(crate) formals: Vec<String>,
@@ -337,12 +515,90 @@ impl Display for LambdaProcedure {
     }
 }
 
+impl From<LambdaProcedure> for Procedure {
+    fn from(lambda: LambdaProcedure) -> Self {
+        Self::Lambda(lambda)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Expression(Expression),
     Procedure(Procedure),
     Thunk(Thunk),
     Unspecified,
+}
+
+impl Value {
+    pub fn as_expression(&self) -> Option<&Expression> {
+        match self {
+            Self::Expression(expression) => Some(expression),
+            _ => None,
+        }
+    }
+
+    pub fn as_procedure(&self) -> Option<&Procedure> {
+        match self {
+            Self::Procedure(procedure) => Some(procedure),
+            _ => None,
+        }
+    }
+
+    pub fn as_thunk(&self) -> Option<&Thunk> {
+        match self {
+            Self::Thunk(thunk) => Some(thunk),
+            _ => None,
+        }
+    }
+
+    pub fn as_number(&self) -> Option<&Number> {
+        match self {
+            Self::Expression(expression) => expression.as_number(),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            Self::Expression(expression) => expression.as_string(),
+            _ => None,
+        }
+    }
+
+    pub fn as_boolean(&self) -> Option<&bool> {
+        match self {
+            Self::Expression(expression) => expression.as_boolean(),
+            _ => None,
+        }
+    }
+
+    pub fn as_symbol(&self) -> Option<&str> {
+        match self {
+            Self::Expression(expression) => expression.as_symbol(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_pair(&self) -> Option<&Pair> {
+        match self {
+            Self::Expression(expression) => expression.as_pair(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_vector(&self) -> Option<&Vec<Link>> {
+        match self {
+            Self::Expression(expression) => expression.as_vector(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_promise(&self) -> Option<&Promise> {
+        match self {
+            Self::Expression(expression) => expression.as_promise(),
+            _ => None,
+        }
+    }
 }
 
 impl Display for Value {
@@ -353,6 +609,48 @@ impl Display for Value {
             Self::Thunk(_) => write!(f, "#[thunk]"),
             Self::Unspecified => write!(f, "#[unspecified]"),
         }
+    }
+}
+
+impl From<Expression> for Value {
+    fn from(expression: Expression) -> Self {
+        Self::Expression(expression)
+    }
+}
+
+impl From<Link> for Value {
+    fn from(link: Link) -> Self {
+        Self::Expression(Expression::from(link))
+    }
+}
+
+impl From<bool> for Value {
+    fn from(boolean: bool) -> Self {
+        Value::from(Expression::from(boolean))
+    }
+}
+
+impl From<Procedure> for Value {
+    fn from(procedure: Procedure) -> Self {
+        Self::Procedure(procedure)
+    }
+}
+
+impl From<BuiltinProcedure> for Value {
+    fn from(builtin: BuiltinProcedure) -> Self {
+        Self::from(Procedure::from(builtin))
+    }
+}
+
+impl From<LambdaProcedure> for Value {
+    fn from(lambda: LambdaProcedure) -> Self {
+        Self::from(Procedure::from(lambda))
+    }
+}
+
+impl From<Thunk> for Value {
+    fn from(thunk: Thunk) -> Self {
+        Self::Thunk(thunk)
     }
 }
 
