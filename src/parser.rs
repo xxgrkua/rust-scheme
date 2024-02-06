@@ -319,4 +319,9 @@ mod tests {
             parse(&mut tokenize("(1 2 3 #(4 5 6 (7 8 . 9)))").unwrap()).unwrap()
         )
     }
+
+    #[test]
+    fn test_quote() {
+        println!("quote parse: {:?}", parse(&mut tokenize("'x").unwrap()));
+    }
 }

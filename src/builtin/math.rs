@@ -43,7 +43,7 @@ pub(crate) const SUB: BuiltinProcedure = BuiltinProcedure {
 
 fn sub(args: Vec<Value>) -> Result<Value, ApplyError> {
     if args.is_empty() {
-        Err(InvalidArgument::TooFewArguments("#[-]".to_string()))?
+        Err(InvalidArgument::TooFewArguments("#[-]".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
         let mut difference = if let Value::Expression(Expression {
@@ -115,7 +115,7 @@ pub(crate) const DIV: BuiltinProcedure = BuiltinProcedure {
 
 fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
     if args.is_empty() {
-        Err(InvalidArgument::TooFewArguments("#[/]".to_string()))?
+        Err(InvalidArgument::TooFewArguments("#[/]".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
         let mut quotient = if let Value::Expression(Expression {

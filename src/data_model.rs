@@ -36,16 +36,40 @@ impl Link {
         }
     }
 
-    pub fn outer_iter(&self) -> OuterIter<'_> {
-        OuterIter {
-            next: self.as_ref(),
-        }
+    pub fn iter(&self) -> Iter<'_> {
+        Iter { next: Some(&self) }
     }
 
-    pub fn inner_iter(&self) -> InnerIter<'_> {
-        InnerIter {
-            next: self.as_deref(),
-        }
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+
+    pub fn is_number(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::Number(_)))
+    }
+
+    pub fn is_symbol(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::Symbol(_)))
+    }
+
+    pub fn is_string(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::String(_)))
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::Boolean(_)))
+    }
+
+    pub fn is_pair(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::PairLink(_)))
+    }
+
+    pub fn is_vector(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::VectorLink(_)))
+    }
+
+    pub fn is_promise(&self) -> bool {
+        matches!(self.as_deref(), Some(ExpressionContent::Promise(_)))
     }
 }
 
@@ -104,6 +128,16 @@ pub(crate) struct Pair {
     pub(crate) cdr: Link,
 }
 
+impl Pair {
+    pub fn car(&self) -> Link {
+        return self.car.clone();
+    }
+
+    pub fn cdr(&self) -> Link {
+        return self.cdr.clone();
+    }
+}
+
 impl Display for Pair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}", &self.car)?;
@@ -125,34 +159,17 @@ impl Display for Pair {
     }
 }
 
-pub(crate) struct OuterIter<'a> {
-    next: Option<&'a Rc<ExpressionContent>>,
+pub(crate) struct Iter<'a> {
+    next: Option<&'a Link>,
 }
 
-impl<'a> Iterator for OuterIter<'a> {
-    type Item = &'a Rc<ExpressionContent>;
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a Link;
     fn next(&mut self) -> Option<Self::Item> {
-        self.next.and_then(|content| match content.as_ref() {
-            ExpressionContent::PairLink(pair) => {
-                self.next = pair.cdr.as_ref();
-                pair.car.as_ref()
-            }
-            _ => None,
-        })
-    }
-}
-
-pub(crate) struct InnerIter<'a> {
-    next: Option<&'a ExpressionContent>,
-}
-
-impl<'a> Iterator for InnerIter<'a> {
-    type Item = &'a ExpressionContent;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next.and_then(|content| match content {
-            ExpressionContent::PairLink(pair) => {
-                self.next = pair.cdr.as_deref();
-                pair.car.as_deref()
+        self.next.and_then(|content| match content.as_deref() {
+            Some(ExpressionContent::PairLink(pair)) => {
+                self.next = Some(&pair.cdr);
+                Some(&pair.car)
             }
             _ => None,
         })
@@ -256,7 +273,7 @@ impl FrameNode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum SpecialForm {
+pub(crate) enum SpecialForm {
     And,
     Begin,
     Case,

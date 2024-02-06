@@ -65,11 +65,25 @@ pub enum InvalidArgument {
     #[error("{0} is not a number")]
     InvalidNumber(String),
 
-    #[error("too few arguments for {0}")]
-    TooFewArguments(String),
+    #[error("{0} is not a {1}")]
+    InvalidType(String, String),
+
+    #[error("{0} expects at least {1} arguments, but got {2} arguments")]
+    TooFewArguments(String, usize, usize),
+
+    #[error("{0} expects {1} arguments, but got {2} arguments")]
+    InvalidNumberOfArguments(String, usize, usize),
 
     #[error("division by zero")]
     ZeroDivisor,
+}
+
+pub(crate) fn invalid_number<T: ToString>(value: &T) -> InvalidArgument {
+    InvalidArgument::InvalidType(value.to_string(), "number".to_string())
+}
+
+pub(crate) fn invalid_symbol<T: ToString>(value: &T) -> InvalidArgument {
+    InvalidArgument::InvalidType(value.to_string(), "symbol".to_string())
 }
 
 impl From<InvalidArgument> for ApplyError {
@@ -81,6 +95,12 @@ impl From<InvalidArgument> for ApplyError {
 impl From<ApplyError> for EvalError {
     fn from(error: ApplyError) -> Self {
         Self::ApplyError(error)
+    }
+}
+
+impl From<InvalidArgument> for EvalError {
+    fn from(error: InvalidArgument) -> Self {
+        Self::ApplyError(ApplyError::InvalidArgument(error))
     }
 }
 
