@@ -8,13 +8,16 @@ use crate::{
 
 pub fn create_global_frame() -> Frame {
     let mut frame = Frame::new();
-    println!("frame");
-    frame.define("+", ADD.into());
-    frame.define("-", SUB.into());
-    frame.define("*", MUL.into());
-    frame.define("/", DIV.into());
 
-    frame.define("pair?", IS_PAIR.into());
-    frame.define("car", CAR.into());
+    // numbers builtins
+    frame.add_builtin(ADD);
+    frame.add_builtin(SUB);
+    frame.add_builtin(MUL);
+    frame.add_builtin(DIV);
+
+    // pair builtins
+    frame.add_builtin(IS_PAIR);
+    frame.add_builtin(CAR);
+
     frame
 }

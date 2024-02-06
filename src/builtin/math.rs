@@ -1,8 +1,6 @@
-use std::rc::Rc;
-
 use crate::{
-    data_model::{BuiltinProcedure, Expression, ExpressionContent, Link, Value},
-    error::{ApplyError, InvalidArgument},
+    data_model::{BuiltinProcedure, Value},
+    error::{invalid_number, ApplyError, InvalidArgument},
     number::Number,
 };
 
@@ -18,22 +16,13 @@ pub(crate) const ADD: BuiltinProcedure = BuiltinProcedure {
 fn add(args: Vec<Value>) -> Result<Value, ApplyError> {
     let mut sum = Number::Integer(0);
     for arg in &args {
-        if let Value::Expression(Expression {
-            content: Link::More(expression_content),
-        }) = arg
-        {
-            if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                sum = sum + number;
-            } else {
-                Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
-            }
+        if let Some(number) = arg.as_number() {
+            sum = sum + number;
         } else {
-            Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+            Err(invalid_number(&arg))?;
         }
     }
-    Ok(Value::Expression(Expression {
-        content: Link::More(Rc::new(ExpressionContent::Number(sum))),
-    }))
+    Ok(sum.into())
 }
 
 pub(crate) const SUB: BuiltinProcedure = BuiltinProcedure {
@@ -46,39 +35,19 @@ fn sub(args: Vec<Value>) -> Result<Value, ApplyError> {
         Err(InvalidArgument::TooFewArguments("#[-]".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
-        let mut difference = if let Value::Expression(Expression {
-            content: Link::More(expression_content),
-        }) = first
-        {
-            if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                *number
-            } else {
-                return Err(InvalidArgument::InvalidNumber(first.to_string()))?;
-            }
-        } else {
-            return Err(InvalidArgument::InvalidNumber(first.to_string()))?;
-        };
+        let mut difference = *first.as_number().ok_or_else(|| invalid_number(&first))?;
         if rest.len() > 0 {
             for arg in rest {
-                if let Value::Expression(Expression {
-                    content: Link::More(expression_content),
-                }) = arg
-                {
-                    if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                        difference = difference - number;
-                    } else {
-                        return Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
-                    }
+                if let Some(number) = arg.as_number() {
+                    difference = difference - number;
                 } else {
-                    return Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+                    return Err(invalid_number(&arg))?;
                 }
             }
         } else {
             difference = -difference;
         }
-        Ok(Value::Expression(Expression {
-            content: Link::More(Rc::new(ExpressionContent::Number(difference))),
-        }))
+        Ok(difference.into())
     }
 }
 
@@ -90,22 +59,13 @@ pub(crate) const MUL: BuiltinProcedure = BuiltinProcedure {
 fn mul(args: Vec<Value>) -> Result<Value, ApplyError> {
     let mut product = Number::Integer(1);
     for arg in &args {
-        if let Value::Expression(Expression {
-            content: Link::More(expression_content),
-        }) = arg
-        {
-            if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                product = product * number;
-            } else {
-                Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
-            }
+        if let Some(number) = arg.as_number() {
+            product = product * number;
         } else {
-            Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+            Err(invalid_number(&arg))?;
         }
     }
-    Ok(Value::Expression(Expression {
-        content: Link::More(Rc::new(ExpressionContent::Number(product))),
-    }))
+    Ok(product.into())
 }
 
 pub(crate) const DIV: BuiltinProcedure = BuiltinProcedure {
@@ -118,37 +78,19 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
         Err(InvalidArgument::TooFewArguments("#[/]".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
-        let mut quotient = if let Value::Expression(Expression {
-            content: Link::More(expression_content),
-        }) = first
-        {
-            if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                *number
-            } else {
-                return Err(InvalidArgument::InvalidNumber(first.to_string()))?;
-            }
-        } else {
-            return Err(InvalidArgument::InvalidNumber(first.to_string()))?;
-        };
+        let mut quotient = *first.as_number().ok_or_else(|| invalid_number(&first))?;
         if rest.len() > 0 {
             for arg in rest {
-                if let Value::Expression(Expression {
-                    content: Link::More(expression_content),
-                }) = arg
-                {
-                    if let ExpressionContent::Number(number) = expression_content.as_ref() {
-                        if *number == Number::Integer(0)
-                            || *number == Number::Real(0.0)
-                            || *number == Number::Complex(0.0, 0.0)
-                        {
-                            return Err(InvalidArgument::ZeroDivisor)?;
-                        }
-                        quotient = quotient / number;
-                    } else {
-                        return Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+                if let Some(number) = arg.as_number() {
+                    if *number == Number::Integer(0)
+                        || *number == Number::Real(0.0)
+                        || *number == Number::Complex(0.0, 0.0)
+                    {
+                        return Err(InvalidArgument::ZeroDivisor)?;
                     }
+                    quotient = quotient / number;
                 } else {
-                    return Err(InvalidArgument::InvalidNumber(arg.to_string()))?;
+                    return Err(invalid_number(&arg))?;
                 }
             }
         } else {
@@ -160,8 +102,6 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
             }
             quotient = Number::Integer(1) / quotient;
         }
-        Ok(Value::Expression(Expression {
-            content: Link::More(Rc::new(ExpressionContent::Number(quotient))),
-        }))
+        Ok(quotient.into())
     }
 }

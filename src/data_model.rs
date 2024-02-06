@@ -2,7 +2,6 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::builtin;
 use crate::error::ApplyError;
 use crate::number::Number;
 
@@ -83,10 +82,66 @@ impl Display for Expression {
     }
 }
 
+impl From<Number> for Expression {
+    fn from(number: Number) -> Self {
+        Self {
+            content: Link::from(number),
+        }
+    }
+}
+
+impl From<String> for Expression {
+    fn from(string: String) -> Self {
+        Self {
+            content: Link::from(string),
+        }
+    }
+}
+
+impl From<&str> for Expression {
+    fn from(string: &str) -> Self {
+        Self {
+            content: Link::from(string),
+        }
+    }
+}
+
 impl From<bool> for Expression {
     fn from(boolean: bool) -> Self {
         Self {
             content: Link::from(boolean),
+        }
+    }
+}
+
+impl From<Pair> for Expression {
+    fn from(pair: Pair) -> Self {
+        Self {
+            content: Link::from(pair),
+        }
+    }
+}
+
+impl From<Vec<Link>> for Expression {
+    fn from(vector: Vec<Link>) -> Self {
+        Self {
+            content: Link::from(vector),
+        }
+    }
+}
+
+impl From<Promise> for Expression {
+    fn from(promise: Promise) -> Self {
+        Self {
+            content: Link::from(promise),
+        }
+    }
+}
+
+impl From<ExpressionContent> for Expression {
+    fn from(expression_content: ExpressionContent) -> Self {
+        Self {
+            content: Link::from(expression_content),
         }
     }
 }
@@ -176,9 +231,51 @@ impl Link {
     }
 }
 
+impl From<ExpressionContent> for Link {
+    fn from(expression_content: ExpressionContent) -> Self {
+        Self::More(Rc::new(expression_content))
+    }
+}
+
+impl From<Number> for Link {
+    fn from(number: Number) -> Self {
+        Self::from(ExpressionContent::from(number))
+    }
+}
+
+impl From<String> for Link {
+    fn from(string: String) -> Self {
+        Self::from(ExpressionContent::from(string))
+    }
+}
+
+impl From<&str> for Link {
+    fn from(string: &str) -> Self {
+        Self::from(ExpressionContent::from(string))
+    }
+}
+
+impl From<Pair> for Link {
+    fn from(pair: Pair) -> Self {
+        Self::from(ExpressionContent::from(pair))
+    }
+}
+
 impl From<bool> for Link {
     fn from(boolean: bool) -> Self {
-        Self::More(Rc::new(ExpressionContent::from(boolean)))
+        Self::from(ExpressionContent::from(boolean))
+    }
+}
+
+impl From<Vec<Link>> for Link {
+    fn from(vector: Vec<Link>) -> Self {
+        Self::from(ExpressionContent::from(vector))
+    }
+}
+
+impl From<Promise> for Link {
+    fn from(promise: Promise) -> Self {
+        Self::from(ExpressionContent::from(promise))
     }
 }
 
@@ -259,9 +356,45 @@ impl ExpressionContent {
     }
 }
 
+impl From<Number> for ExpressionContent {
+    fn from(number: Number) -> Self {
+        Self::Number(number)
+    }
+}
+
+impl From<String> for ExpressionContent {
+    fn from(string: String) -> Self {
+        Self::String(string)
+    }
+}
+
+impl From<&str> for ExpressionContent {
+    fn from(string: &str) -> Self {
+        Self::String(string.to_string())
+    }
+}
+
 impl From<bool> for ExpressionContent {
     fn from(boolean: bool) -> Self {
         Self::Boolean(boolean)
+    }
+}
+
+impl From<Pair> for ExpressionContent {
+    fn from(pair: Pair) -> Self {
+        Self::PairLink(pair)
+    }
+}
+
+impl From<Vec<Link>> for ExpressionContent {
+    fn from(vector: Vec<Link>) -> Self {
+        Self::VectorLink(vector)
+    }
+}
+
+impl From<Promise> for ExpressionContent {
+    fn from(promise: Promise) -> Self {
+        Self::Promise(promise)
     }
 }
 
@@ -415,6 +548,10 @@ impl Frame {
 
     pub fn lookup(&self, name: &str) -> Option<&Value> {
         unsafe { (*self.content.as_ptr()).lookup(name) }
+    }
+
+    pub(crate) fn add_builtin(&mut self, builtin: BuiltinProcedure) {
+        self.define(builtin.name, builtin.into());
     }
 }
 
@@ -618,15 +755,51 @@ impl From<Expression> for Value {
     }
 }
 
+impl From<Number> for Value {
+    fn from(number: Number) -> Self {
+        Self::from(Expression::from(number))
+    }
+}
+
+impl From<String> for Value {
+    fn from(string: String) -> Self {
+        Self::from(Expression::from(string))
+    }
+}
+
+impl From<&str> for Value {
+    fn from(string: &str) -> Self {
+        Self::from(Expression::from(string))
+    }
+}
+
 impl From<Link> for Value {
     fn from(link: Link) -> Self {
-        Self::Expression(Expression::from(link))
+        Self::from(Expression::from(link))
     }
 }
 
 impl From<bool> for Value {
     fn from(boolean: bool) -> Self {
-        Value::from(Expression::from(boolean))
+        Self::from(Expression::from(boolean))
+    }
+}
+
+impl From<Pair> for Value {
+    fn from(pair: Pair) -> Self {
+        Self::from(Expression::from(pair))
+    }
+}
+
+impl From<Vec<Link>> for Value {
+    fn from(vector: Vec<Link>) -> Self {
+        Self::from(Expression::from(vector))
+    }
+}
+
+impl From<Promise> for Value {
+    fn from(promise: Promise) -> Self {
+        Self::from(Expression::from(promise))
     }
 }
 

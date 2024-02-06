@@ -62,9 +62,6 @@ pub enum ApplyError {
 
 #[derive(Debug, Error, PartialEq)]
 pub enum InvalidArgument {
-    #[error("{0} is not a number")]
-    InvalidNumber(String),
-
     #[error("{0} is not a {1}")]
     InvalidType(String, String),
 

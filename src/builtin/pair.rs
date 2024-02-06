@@ -16,11 +16,7 @@ fn is_pair(args: Vec<Value>) -> Result<Value, ApplyError> {
             args.len(),
         ))?
     } else {
-        if let Value::Expression(expression) = &args[0] {
-            Ok(expression.is_pair().into())
-        } else {
-            Ok(false.into())
-        }
+        Ok(args[0].as_pair().is_some().into())
     }
 }
 

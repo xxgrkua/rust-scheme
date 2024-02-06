@@ -1,5 +1,4 @@
 use std::{
-    cell::Ref,
     fmt::Display,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
