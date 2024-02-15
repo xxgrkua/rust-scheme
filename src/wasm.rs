@@ -5,11 +5,11 @@ use crate::{create_global_frame, interpret};
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
 
-export type Interpreter = (code: string) => string;
+export declare function getInterpreter(): (code: string) => string;
 
 "#;
 
-#[wasm_bindgen(js_name = "getInterpreter")]
+#[wasm_bindgen(js_name = "getInterpreter", skip_typescript)]
 pub fn get_interpreter() -> JsValue {
     let mut frame = create_global_frame();
 
