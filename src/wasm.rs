@@ -5,7 +5,7 @@ use crate::{create_global_frame, interpret};
 #[wasm_bindgen(typescript_custom_section)]
 const TS_APPEND_CONTENT: &'static str = r#"
 
-export type getInterpreter = () => (code: string) => string;
+export type Interpreter = (code: string) => string;
 
 "#;
 
