@@ -105,7 +105,7 @@ impl Default for Canvas {
 }
 
 impl Canvas {
-    fn new_path(&mut self) {
+    pub fn new_path(&mut self) {
         let mut path = Path::default();
         path.moves.push(Move::AbsoluteMove(
             self.content.borrow().x,
@@ -114,7 +114,7 @@ impl Canvas {
         self.content.borrow_mut().paths.push(path);
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.content.borrow_mut().x = 0.0;
         self.content.borrow_mut().y = 0.0;
         self.content.borrow_mut().angle = -90.0;
@@ -127,12 +127,12 @@ impl Canvas {
         self.new_path();
     }
 
-    fn set_color(&mut self, color: &str) {
+    pub fn set_color(&mut self, color: &str) {
         self.new_path();
         self.content.borrow_mut().paths.last_mut().unwrap().stroke = color.to_string();
     }
 
-    fn mov(&mut self, x: f64, y: f64) {
+    pub fn mov(&mut self, x: f64, y: f64) {
         if self.content.borrow().pen_down {
             self.content
                 .borrow_mut()
@@ -157,13 +157,13 @@ impl Canvas {
         self.content.borrow_mut().y = y;
     }
 
-    fn begin_fill(&mut self) {
+    pub fn begin_fill(&mut self) {
         let mut path = Path::default();
         path.fill = self.content.borrow().paths.last().unwrap().stroke.clone();
         self.content.borrow_mut().fill_path = Some(path);
     }
 
-    fn end_fill(&mut self) {
+    pub fn end_fill(&mut self) {
         if let Some(fill_path) = self.content.borrow_mut().fill_path.take() {
             self.content
                 .borrow_mut()
@@ -172,32 +172,32 @@ impl Canvas {
         }
     }
 
-    fn set_bg(&mut self, color: &str) {
+    pub fn set_bg(&mut self, color: &str) {
         self.content.borrow_mut().bg_color = color.to_string();
     }
 
-    fn rotate(&mut self, theta: f64) {
+    pub fn rotate(&mut self, theta: f64) {
         self.content.borrow_mut().angle -= theta;
         self.content.borrow_mut().angle %= 360.0;
     }
 
-    fn abs_rotate(&mut self, theta: f64) {
+    pub fn abs_rotate(&mut self, theta: f64) {
         self.content.borrow_mut().angle = -theta % 360.0;
     }
 
-    fn pendown(&mut self) {
+    pub fn pendown(&mut self) {
         self.content.borrow_mut().pen_down = true;
     }
 
-    fn penup(&mut self) {
+    pub fn penup(&mut self) {
         self.content.borrow_mut().pen_down = false;
     }
 
-    fn show_turtle(&mut self) {
+    pub fn show_turtle(&mut self) {
         self.content.borrow_mut().turtle_visible = true;
     }
 
-    fn hide_turtle(&mut self) {
+    pub fn hide_turtle(&mut self) {
         self.content.borrow_mut().turtle_visible = false;
     }
 }

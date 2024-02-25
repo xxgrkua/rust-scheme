@@ -585,6 +585,14 @@ impl Frame {
     pub(crate) fn add_builtin(&mut self, builtin: BuiltinProcedure) {
         self.define(builtin.name, builtin.into());
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn add_graphic(&mut self, graphic: GraphicProcedure) {
+        self.define(graphic.name, graphic.clone().into());
+        for alias in &graphic.aliases {
+            self.define(alias, graphic.clone().into());
+        }
+    }
 }
 
 impl Drop for Frame {
@@ -877,6 +885,13 @@ impl From<BuiltinProcedure> for Value {
 impl From<LambdaProcedure> for Value {
     fn from(lambda: LambdaProcedure) -> Self {
         Self::from(Procedure::from(lambda))
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<GraphicProcedure> for Value {
+    fn from(graphic: GraphicProcedure) -> Self {
+        Self::from(Procedure::from(graphic))
     }
 }
 

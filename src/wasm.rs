@@ -1,10 +1,25 @@
 use wasm_bindgen::prelude::*;
 
-use crate::{canvas::Canvas, create_global_frame, data_model::Frame, interpret};
+use crate::{
+    builtin::graphic::reset,
+    canvas::Canvas,
+    create_global_frame,
+    data_model::{Frame, GraphicProcedure},
+    interpret,
+};
 
 fn create_wasm_global_frame() -> Frame {
     let mut frame = create_global_frame();
     let canvas = Canvas::default();
+
+    let reset_procedure = GraphicProcedure {
+        name: "reset",
+        aliases: vec![],
+        function: reset,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(reset_procedure);
 
     frame
 }
