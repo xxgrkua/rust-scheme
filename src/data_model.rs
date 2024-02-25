@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
+#[cfg(target_arch = "wasm32")]
 use crate::canvas::Canvas;
 use crate::error::ApplyError;
 use crate::number::Number;
