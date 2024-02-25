@@ -1,4 +1,6 @@
 mod builtin;
+#[cfg(target_arch = "wasm32")]
+mod canvas;
 mod data_model;
 mod error;
 mod evaluator;

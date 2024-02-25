@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::ptr::NonNull;
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
+use crate::canvas::Canvas;
 use crate::error::ApplyError;
 use crate::number::Number;
 
@@ -639,6 +640,8 @@ pub(crate) enum SpecialForm {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Procedure {
     Builtin(BuiltinProcedure),
+    #[cfg(target_arch = "wasm32")]
+    Graphic(GraphicProcedure),
     Lambda(LambdaProcedure),
 }
 
@@ -647,6 +650,8 @@ impl Display for Procedure {
         match self {
             Self::Builtin(builtin) => write!(f, "{}", builtin),
             Self::Lambda(lambda) => write!(f, "{}", lambda),
+            #[cfg(target_arch = "wasm32")]
+            Self::Graphic(graphic) => write!(f, "{}", graphic),
         }
     }
 }
@@ -666,6 +671,28 @@ impl Display for BuiltinProcedure {
 impl From<BuiltinProcedure> for Procedure {
     fn from(builtin: BuiltinProcedure) -> Self {
         Self::Builtin(builtin)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraphicProcedure {
+    pub(crate) name: &'static str,
+    pub(crate) function: fn(Vec<Value>, &mut Canvas) -> Result<Value, ApplyError>,
+    pub(crate) canvas: Canvas,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Display for GraphicProcedure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#[{}]", self.name)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl From<GraphicProcedure> for Procedure {
+    fn from(graphic: GraphicProcedure) -> Self {
+        Self::Graphic(graphic)
     }
 }
 
@@ -774,7 +801,7 @@ impl Display for Value {
             Self::Expression(expression) => write!(f, "{}", expression),
             Self::Procedure(procedure) => write!(f, "{}", procedure),
             Self::Thunk(_) => write!(f, "#[thunk]"),
-            Self::Unspecified => write!(f, "#[unspecified]"),
+            Self::Unspecified => write!(f, ""),
         }
     }
 }

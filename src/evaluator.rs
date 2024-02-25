@@ -1,3 +1,5 @@
+#[cfg(target_arch = "wasm32")]
+use crate::data_model::GraphicProcedure;
 use crate::{
     data_model::{
         BuiltinProcedure, Expression, ExpressionContent, Frame, LambdaProcedure, Link, Procedure,
@@ -51,7 +53,7 @@ pub fn eval(
                 }
             }
             let operator = eval(pair.car().into(), frame, false)?;
-            if let Value::Procedure(procedure) = operator {
+            if let Value::Procedure(mut procedure) = operator {
                 let mut operands = vec![];
                 for expression_content in pair.cdr.iter() {
                     operands.push(eval(expression_content.clone().into(), frame, false)?);
@@ -164,11 +166,20 @@ impl LambdaProcedure {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+impl GraphicProcedure {
+    pub fn apply(&mut self, args: Vec<Value>, _: &mut Frame) -> Result<Value, ApplyError> {
+        (self.function)(args, &mut self.canvas)
+    }
+}
+
 impl Procedure {
-    pub fn apply(&self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, ApplyError> {
+    pub fn apply(&mut self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, ApplyError> {
         match self {
             Procedure::Builtin(builtin) => builtin.apply(args, frame),
             Procedure::Lambda(lambda) => lambda.apply(args, frame),
+            #[cfg(target_arch = "wasm32")]
+            Procedure::Graphic(graphic) => graphic.apply(args, frame),
         }
     }
 }
