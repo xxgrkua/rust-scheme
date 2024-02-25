@@ -679,6 +679,7 @@ impl From<BuiltinProcedure> for Procedure {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphicProcedure {
     pub(crate) name: &'static str,
+    pub(crate) aliases: Vec<&'static str>,
     pub(crate) function: fn(Vec<Value>, &mut Canvas) -> Result<Value, ApplyError>,
     pub(crate) canvas: Canvas,
 }
