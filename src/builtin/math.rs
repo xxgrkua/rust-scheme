@@ -32,7 +32,7 @@ pub(crate) const SUB: BuiltinProcedure = BuiltinProcedure {
 
 fn sub(args: Vec<Value>) -> Result<Value, ApplyError> {
     if args.is_empty() {
-        Err(InvalidArgument::TooFewArguments("#[-]".to_string(), 1, 0))?
+        Err(InvalidArgument::TooFewArguments("-".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
         let mut difference = *first.as_number().ok_or_else(|| invalid_number(&first))?;
@@ -75,7 +75,7 @@ pub(crate) const DIV: BuiltinProcedure = BuiltinProcedure {
 
 fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
     if args.is_empty() {
-        Err(InvalidArgument::TooFewArguments("#[/]".to_string(), 1, 0))?
+        Err(InvalidArgument::TooFewArguments("/".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
         let mut quotient = *first.as_number().ok_or_else(|| invalid_number(&first))?;
