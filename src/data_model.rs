@@ -535,7 +535,14 @@ pub(crate) type FrameLink = NonNull<FrameNode>;
 
 impl Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe { write!(f, "Frame {{ {:?} }}", self.content.as_ref()) }
+        unsafe {
+            write!(
+                f,
+                "Frame {{ at {:p}, {:?} }}",
+                self.content,
+                self.content.as_ref()
+            )
+        }
     }
 }
 

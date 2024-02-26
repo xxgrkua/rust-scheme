@@ -34,6 +34,60 @@ pub fn backward(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyErr
     }
 }
 
+pub fn right(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 1 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "right".to_string(),
+            1,
+            args.len(),
+        ))?
+    } else {
+        let angle = args[0].as_number().ok_or(invalid_number(&args[0]))?;
+        canvas.rotate(-angle.try_into()?);
+        Ok(Value::Void)
+    }
+}
+
+pub fn left(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 1 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "left".to_string(),
+            1,
+            args.len(),
+        ))?
+    } else {
+        let angle = args[0].as_number().ok_or(invalid_number(&args[0]))?;
+        canvas.rotate(angle.try_into()?);
+        Ok(Value::Void)
+    }
+}
+
+pub fn begin_fill(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 0 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "begin_fill".to_string(),
+            0,
+            args.len(),
+        ))?
+    } else {
+        canvas.begin_fill();
+        Ok(Value::Void)
+    }
+}
+
+pub fn end_fill(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 0 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "end_fill".to_string(),
+            0,
+            args.len(),
+        ))?
+    } else {
+        canvas.end_fill();
+        Ok(Value::Void)
+    }
+}
+
 pub fn reset(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
     if args.len() != 0 {
         Err(InvalidArgument::InvalidNumberOfArguments(

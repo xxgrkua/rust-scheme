@@ -1,7 +1,10 @@
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    builtin::graphic::{backward, forward, hide_turtle, is_visible, reset, show_turtle},
+    builtin::graphic::{
+        backward, begin_fill, end_fill, forward, hide_turtle, is_visible, left, reset, right,
+        show_turtle,
+    },
     canvas::{Canvas, Path},
     create_global_frame,
     data_model::{Frame, GraphicProcedure},
@@ -165,6 +168,38 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
     };
 
     frame.add_graphic(backward_procedure, &["bk", "back"]);
+
+    let right_procedure = GraphicProcedure {
+        name: "right",
+        function: right,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(right_procedure, &["rt"]);
+
+    let left_procedure = GraphicProcedure {
+        name: "left",
+        function: left,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(left_procedure, &["lt"]);
+
+    let begin_fill_procedure = GraphicProcedure {
+        name: "begin_fill",
+        function: begin_fill,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(begin_fill_procedure, &[]);
+
+    let end_fill_procedure = GraphicProcedure {
+        name: "end_fill",
+        function: end_fill,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(end_fill_procedure, &[]);
 
     let reset_procedure = GraphicProcedure {
         name: "reset",
