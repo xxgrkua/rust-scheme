@@ -146,7 +146,7 @@ impl Interpreter {
     }
 }
 
-pub fn create_wasm_global_env() -> (Frame, Canvas) {
+fn create_wasm_global_env() -> (Frame, Canvas) {
     let mut frame = create_global_frame();
     let canvas = Canvas::default();
 

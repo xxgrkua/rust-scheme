@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::ptr::NonNull;
 use std::{collections::HashMap, fmt::Display, rc::Rc};
@@ -525,17 +526,40 @@ pub struct Thunk {
     pub(crate) frame: FrameLink,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Frame {
     pub(crate) content: FrameLink,
 }
 
 pub(crate) type FrameLink = NonNull<FrameNode>;
 
-#[derive(Debug, Clone, PartialEq)]
+impl Debug for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unsafe { write!(f, "Frame {{ {:?} }}", self.content.as_ref()) }
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub(crate) struct FrameNode {
     data: HashMap<String, Value>,
     parent: Option<FrameLink>,
+}
+
+impl Debug for FrameNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut data = String::new();
+        data.push_str("{");
+        data.push_str(
+            &self
+                .data
+                .iter()
+                .map(|(key, value)| format!("{}: {}", key, value))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        data.push_str("}");
+        write!(f, "{}", data)
+    }
 }
 
 impl Frame {
