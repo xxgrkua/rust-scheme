@@ -121,7 +121,32 @@ impl Output {
     }
 }
 
-fn create_wasm_global_frame() -> (Frame, Canvas) {
+#[wasm_bindgen]
+pub struct Interpreter {
+    frame: Frame,
+    canvas: Canvas,
+}
+
+#[wasm_bindgen]
+impl Interpreter {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        let (frame, canvas) = create_wasm_global_env();
+        Self { frame, canvas }
+    }
+
+    pub fn eval(&mut self, input: String) -> Result<Output, String> {
+        match interpret(&input, &mut self.frame) {
+            Ok(value) => Ok(Output {
+                console: value.to_string(),
+                canvas: self.canvas.export(),
+            }),
+            Err(err) => Err(err.to_string()),
+        }
+    }
+}
+
+pub fn create_wasm_global_env() -> (Frame, Canvas) {
     let mut frame = create_global_frame();
     let canvas = Canvas::default();
 
@@ -174,32 +199,4 @@ fn create_wasm_global_frame() -> (Frame, Canvas) {
     frame.add_graphic(is_visible_procedure, &[]);
 
     (frame, canvas)
-}
-
-#[wasm_bindgen(typescript_custom_section)]
-const TS_APPEND_CONTENT: &'static str = r#"
-
-export declare function getInterpreter(): (code: string) => Output;
-
-"#;
-
-#[wasm_bindgen(js_name = "getInterpreter", skip_typescript)]
-pub fn get_interpreter() -> JsValue {
-    let (mut frame, canvas) = create_wasm_global_frame();
-
-    let cb = Closure::<dyn FnMut(String) -> Result<Output, String>>::new(move |input: String| {
-        match interpret(&input, &mut frame) {
-            Ok(value) => Ok(Output {
-                console: value.to_string(),
-                canvas: canvas.export(),
-            }),
-            Err(err) => Err(err.to_string()),
-        }
-    });
-
-    let ret = cb.as_ref().clone();
-
-    cb.forget();
-
-    ret
 }

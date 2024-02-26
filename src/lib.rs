@@ -18,4 +18,4 @@ pub use interpreter::interpret;
 pub use lexer::tokenize;
 pub use parser::parse;
 #[cfg(target_arch = "wasm32")]
-pub use wasm::get_interpreter;
+pub use wasm::*;

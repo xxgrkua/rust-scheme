@@ -68,7 +68,7 @@ impl Default for Path {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
-    pub content: Rc<RefCell<CanvasContent>>,
+    pub(crate) content: Rc<RefCell<CanvasContent>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
