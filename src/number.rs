@@ -6,7 +6,7 @@ use std::{
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::error::ParseError;
+use crate::error::{InvalidArgument, ParseError};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Number {
@@ -14,6 +14,52 @@ pub enum Number {
     // Rational(i32, i32),
     Real(f64),
     Complex(f64, f64),
+}
+
+impl TryInto<i32> for Number {
+    type Error = InvalidArgument;
+
+    fn try_into(self) -> Result<i32, Self::Error> {
+        match self {
+            Self::Integer(value) => Ok(value),
+            Self::Real(value) => Ok(value as i32),
+            Self::Complex(_, _) => Err(InvalidArgument::InvalidType(
+                self.to_string(),
+                "integer".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryInto<i32> for &Number {
+    type Error = InvalidArgument;
+
+    fn try_into(self) -> Result<i32, Self::Error> {
+        (*self).try_into()
+    }
+}
+
+impl TryInto<f64> for Number {
+    type Error = InvalidArgument;
+
+    fn try_into(self) -> Result<f64, Self::Error> {
+        match self {
+            Self::Integer(value) => Ok(value as f64),
+            Self::Real(value) => Ok(value),
+            Self::Complex(_, _) => Err(InvalidArgument::InvalidType(
+                self.to_string(),
+                "real".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryInto<f64> for &Number {
+    type Error = InvalidArgument;
+
+    fn try_into(self) -> Result<f64, Self::Error> {
+        (*self).try_into()
+    }
 }
 
 impl Display for Number {

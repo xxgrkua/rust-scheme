@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    builtin::graphic::reset,
+    builtin::graphic::{backward, forward, hide_turtle, is_visible, reset, show_turtle},
     canvas::Canvas,
     create_global_frame,
     data_model::{Frame, GraphicProcedure},
@@ -12,6 +12,22 @@ fn create_wasm_global_frame() -> (Frame, Canvas) {
     let mut frame = create_global_frame();
     let canvas = Canvas::default();
 
+    let forward_procedure = GraphicProcedure {
+        name: "forward",
+        function: forward,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(forward_procedure, &["fd"]);
+
+    let backward_procedure = GraphicProcedure {
+        name: "backward",
+        function: backward,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(backward_procedure, &["bk", "back"]);
+
     let reset_procedure = GraphicProcedure {
         name: "reset",
         function: reset,
@@ -19,6 +35,30 @@ fn create_wasm_global_frame() -> (Frame, Canvas) {
     };
 
     frame.add_graphic(reset_procedure, &[]);
+
+    let show_turtle_procedure = GraphicProcedure {
+        name: "showturtle",
+        function: show_turtle,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(show_turtle_procedure, &["st"]);
+
+    let hide_turtle_procedure = GraphicProcedure {
+        name: "hideturtle",
+        function: hide_turtle,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(hide_turtle_procedure, &["ht"]);
+
+    let is_visible_procedure = GraphicProcedure {
+        name: "visible?",
+        function: is_visible,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(is_visible_procedure, &[]);
 
     (frame, canvas)
 }

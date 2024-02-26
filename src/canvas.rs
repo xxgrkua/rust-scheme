@@ -157,6 +157,12 @@ impl Canvas {
         self.content.borrow_mut().y = y;
     }
 
+    pub fn forward(&mut self, distance: f64) {
+        let x = self.content.borrow().x + distance * self.content.borrow().angle.to_radians().cos();
+        let y = self.content.borrow().y + distance * self.content.borrow().angle.to_radians().sin();
+        self.mov(x, y);
+    }
+
     pub fn begin_fill(&mut self) {
         let mut path = Path::default();
         path.fill = self.content.borrow().paths.last().unwrap().stroke.clone();
@@ -199,6 +205,10 @@ impl Canvas {
 
     pub fn hide_turtle(&mut self) {
         self.content.borrow_mut().turtle_visible = false;
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.content.borrow().turtle_visible
     }
 }
 
