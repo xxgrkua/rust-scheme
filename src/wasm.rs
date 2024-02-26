@@ -54,12 +54,17 @@ impl Path {
 pub struct CanvasState {
     #[wasm_bindgen(readonly)]
     pub x: f64,
+
     #[wasm_bindgen(readonly)]
     pub y: f64,
+
     paths: Vec<SVGPath>,
+
     #[wasm_bindgen(readonly)]
     pub rotation: f64,
+
     bg_color: String,
+
     #[wasm_bindgen(readonly)]
     pub visible: bool,
 }
@@ -67,7 +72,7 @@ pub struct CanvasState {
 #[wasm_bindgen]
 impl CanvasState {
     #[wasm_bindgen(getter)]
-    pub fn path(&self) -> Vec<SVGPath> {
+    pub fn paths(&self) -> Vec<SVGPath> {
         self.paths.clone()
     }
 
