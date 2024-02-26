@@ -14,15 +14,14 @@ regex = { version = "1.10.3", default-features = false, features = [
     "perf",
     "std",
 ] }
-thiserror = "1.0.56"
-wasm-bindgen = "0.2.90"
+thiserror = "1.0.57"
 
 [build-dependencies]
 phf = { version = "0.11.2", default-features = false }
 phf_codegen = "0.11.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2.90"
+wasm-bindgen = "0.2.91"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.41"
