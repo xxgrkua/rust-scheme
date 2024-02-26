@@ -587,9 +587,9 @@ impl Frame {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub(crate) fn add_graphic(&mut self, graphic: GraphicProcedure) {
+    pub(crate) fn add_graphic(&mut self, graphic: GraphicProcedure, aliases: &[&str]) {
         self.define(graphic.name, graphic.clone().into());
-        for alias in &graphic.aliases {
+        for alias in aliases {
             self.define(alias, graphic.clone().into());
         }
     }
@@ -687,7 +687,6 @@ impl From<BuiltinProcedure> for Procedure {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphicProcedure {
     pub(crate) name: &'static str,
-    pub(crate) aliases: Vec<&'static str>,
     pub(crate) function: fn(Vec<Value>, &mut Canvas) -> Result<Value, ApplyError>,
     pub(crate) canvas: Canvas,
 }
@@ -730,7 +729,7 @@ pub enum Value {
     Expression(Expression),
     Procedure(Procedure),
     Thunk(Thunk),
-    Unspecified,
+    Void,
 }
 
 impl Value {
@@ -811,7 +810,7 @@ impl Display for Value {
             Self::Expression(expression) => write!(f, "{}", expression),
             Self::Procedure(procedure) => write!(f, "{}", procedure),
             Self::Thunk(_) => write!(f, "#[thunk]"),
-            Self::Unspecified => write!(f, ""),
+            Self::Void => write!(f, ""),
         }
     }
 }
