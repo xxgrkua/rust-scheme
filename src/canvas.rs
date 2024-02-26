@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Move {
+pub enum Move {
     AbsoluteMove(f64, f64),
     RelativeMove(f64, f64),
     AbsoluteLine(f64, f64),
@@ -50,10 +50,10 @@ impl Display for Move {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Path {
-    stroke: String,
-    fill: String,
-    moves: Vec<Move>,
+pub struct Path {
+    pub stroke: String,
+    pub fill: String,
+    pub moves: Vec<Move>,
 }
 
 impl Default for Path {
@@ -68,19 +68,19 @@ impl Default for Path {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Canvas {
-    content: Rc<RefCell<CanvasContent>>,
+    pub content: Rc<RefCell<CanvasContent>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct CanvasContent {
-    x: f64,
-    y: f64,
-    angle: f64,
-    bg_color: String,
-    paths: Vec<Path>,
+pub struct CanvasContent {
+    pub x: f64,
+    pub y: f64,
+    pub angle: f64,
+    pub bg_color: String,
+    pub paths: Vec<Path>,
     fill_path: Option<Path>,
     pen_down: bool,
-    turtle_visible: bool,
+    pub turtle_visible: bool,
     size: f64,
 }
 
