@@ -1,6 +1,6 @@
 use crate::{
     canvas::Canvas,
-    data_model::{Expression, Link, Value},
+    data_model::{Link, Value},
     error::{invalid_number, ApplyError, InvalidArgument},
     number::Number,
 };
@@ -79,6 +79,21 @@ pub fn setposition(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, Apply
     }
 }
 
+pub fn setheading(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 1 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "setheading".to_string(),
+            1,
+            args.len(),
+        ))?
+    } else {
+        let angle = args[0].as_number().ok_or(invalid_number(&args[0]))?;
+        let angle: f64 = angle.try_into()?;
+        canvas.abs_rotate(90.0 - angle);
+        Ok(Value::Void)
+    }
+}
+
 // tell turtle state
 
 pub fn position(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
@@ -93,6 +108,19 @@ pub fn position(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyErr
         let y: Number = (-canvas.content.borrow().y).into();
         let pair_link = Link::new_pair(x.into(), Link::new_pair(y.into(), Link::Nil));
         Ok(pair_link.into())
+    }
+}
+
+pub fn heading(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyError> {
+    if args.len() != 0 {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            "heading".to_string(),
+            0,
+            args.len(),
+        ))?
+    } else {
+        let angle: Number = (90.0 + canvas.content.borrow().angle).into();
+        Ok(angle.into())
     }
 }
 

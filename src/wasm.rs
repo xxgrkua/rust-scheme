@@ -2,8 +2,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     builtin::graphic::{
-        backward, begin_fill, end_fill, forward, hide_turtle, is_visible, left, pendown, penup,
-        position, reset, right, setposition, show_turtle,
+        backward, begin_fill, end_fill, forward, heading, hide_turtle, is_visible, left, pendown,
+        penup, position, reset, right, setheading, setposition, show_turtle,
     },
     canvas::{Canvas, Path},
     create_global_frame,
@@ -193,6 +193,14 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
 
     frame.add_graphic(setposition_procedure, &["setpos", "goto"]);
 
+    let setheading_procedure = GraphicProcedure {
+        name: "setheading",
+        function: setheading,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(setheading_procedure, &["seth"]);
+
     let position_procedure = GraphicProcedure {
         name: "position",
         function: position,
@@ -200,6 +208,14 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
     };
 
     frame.add_graphic(position_procedure, &["pos"]);
+
+    let heading_procedure = GraphicProcedure {
+        name: "heading",
+        function: heading,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(heading_procedure, &[]);
 
     let begin_fill_procedure = GraphicProcedure {
         name: "begin-fill",
