@@ -210,7 +210,7 @@ impl LambdaProcedure {
             self.formals.len(),
             args.len(),
         )?;
-        let mut frame = frame.make_child();
+        let mut frame = self.frame.make_child();
         for (formal, actual) in self.formals.iter().zip(args) {
             frame.define(formal, actual);
         }
