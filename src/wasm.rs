@@ -186,7 +186,7 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
     frame.add_graphic(left_procedure, &["lt"]);
 
     let begin_fill_procedure = GraphicProcedure {
-        name: "begin_fill",
+        name: "begin-fill",
         function: begin_fill,
         canvas: canvas.clone(),
     };
@@ -194,7 +194,7 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
     frame.add_graphic(begin_fill_procedure, &[]);
 
     let end_fill_procedure = GraphicProcedure {
-        name: "end_fill",
+        name: "end-fill",
         function: end_fill,
         canvas: canvas.clone(),
     };
