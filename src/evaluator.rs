@@ -91,6 +91,7 @@ fn eval_all(expressions: Link, frame: &mut Frame) -> Result<Value, EvalError> {
 impl SpecialForm {
     pub fn apply(&self, args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
         match self {
+            Self::Begin => do_begin_form(args, frame),
             Self::Define => do_define_form(args, frame),
             Self::If => do_if_form(args, frame),
             Self::Lambda => do_lambda_form(args, frame, None),
@@ -189,6 +190,10 @@ fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
             Ok(Value::Void)
         }
     }
+}
+
+fn do_begin_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    eval_all(args, frame)
 }
 
 impl BuiltinProcedure {
