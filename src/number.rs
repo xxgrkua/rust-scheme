@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     fmt::Display,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
@@ -394,6 +395,54 @@ impl TryFrom<&str> for Number {
             Ok(Self::Complex(real, im))
         } else {
             Err(ParseError::InvalidNumber(value.to_string()))
+        }
+    }
+}
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (*self, *other) {
+            (Self::Integer(lhs), Self::Integer(rhs)) => lhs.partial_cmp(&rhs),
+            (Self::Real(lhs), Self::Real(rhs)) => lhs.partial_cmp(&rhs),
+            (Self::Complex(lhs_real, lhs_im), Self::Complex(rhs_real, rhs_im)) => {
+                if (lhs_real, lhs_im) == (rhs_real, rhs_im) {
+                    Some(Ordering::Equal)
+                } else if lhs_im == 0.0 && rhs_im == 0.0 {
+                    lhs_real.partial_cmp(&rhs_real)
+                } else {
+                    None
+                }
+            }
+            (Self::Integer(lhs), Self::Real(rhs)) => (lhs as f64).partial_cmp(&rhs),
+            (Self::Real(lhs), Self::Integer(rhs)) => lhs.partial_cmp(&(rhs as f64)),
+            (Self::Integer(lhs), Self::Complex(rhs_real, rhs_im)) => {
+                if rhs_im == 0.0 {
+                    (lhs as f64).partial_cmp(&rhs_real)
+                } else {
+                    None
+                }
+            }
+            (Self::Complex(lhs_real, lhs_im), Self::Integer(rhs)) => {
+                if lhs_im == 0.0 {
+                    lhs_real.partial_cmp(&(rhs as f64))
+                } else {
+                    None
+                }
+            }
+            (Self::Real(lhs), Self::Complex(rhs_real, rhs_im)) => {
+                if rhs_im == 0.0 {
+                    lhs.partial_cmp(&rhs_real)
+                } else {
+                    None
+                }
+            }
+            (Self::Complex(lhs_real, lhs_im), Self::Real(rhs)) => {
+                if lhs_im == 0.0 {
+                    lhs_real.partial_cmp(&rhs)
+                } else {
+                    None
+                }
+            }
         }
     }
 }
