@@ -5,7 +5,7 @@ use crate::{
         BuiltinProcedure, Expression, ExpressionContent, Frame, LambdaProcedure, Link, Procedure,
         SpecialForm, Thunk, Value,
     },
-    error::{invalid_symbol, ApplyError, EvalError, InvalidArgument},
+    error::{invalid_symbol, validate_number_of_arguments, ApplyError, EvalError, InvalidArgument},
 };
 use phf::phf_map;
 
@@ -78,35 +78,13 @@ impl SpecialForm {
     pub fn apply(&self, args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
         match self {
             Self::Define => do_define_form(args, frame),
-            Self::Quote => do_quote_form(args, frame),
+            Self::If => do_if_form(args, frame),
             Self::Lambda => do_lambda_form(args, frame),
+            Self::Quote => do_quote_form(args, frame),
             _ => {
                 unimplemented!()
             }
         }
-    }
-}
-
-fn validate_number_of_arguments(
-    name: &str,
-    least_expected: usize,
-    most_expected: usize,
-    actual: usize,
-) -> Result<(), InvalidArgument> {
-    if (least_expected == most_expected) && (actual != least_expected) {
-        Err(InvalidArgument::InvalidNumberOfArguments(
-            name.to_string(),
-            least_expected,
-            actual,
-        ))
-    } else if (most_expected == usize::MAX) && (actual < least_expected) {
-        Err(InvalidArgument::TooFewArguments(
-            name.to_string(),
-            least_expected,
-            actual,
-        ))
-    } else {
-        Ok(())
     }
 }
 
@@ -118,13 +96,13 @@ fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
             validate_number_of_arguments("define", 2, 2, args.len())?;
             let value = eval(pair.cdr.as_pair().unwrap().car().into(), frame, false)?;
             frame.define(name, value);
-            Ok(pair.car().into())
+            Ok(Value::Void)
         }
         Some(ExpressionContent::PairLink(params)) => {
             if let Some(name) = params.car.as_symbol() {
                 let value = do_lambda_form(Link::new_pair(params.cdr(), pair.cdr()), frame)?;
                 frame.define(name, value);
-                Ok(params.car().into())
+                Ok(Value::Void)
             } else {
                 Err(invalid_symbol(&params.car))?
             }
@@ -143,14 +121,42 @@ fn do_lambda_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
 
 fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
     validate_number_of_arguments("quote", 1, 1, args.len())?;
-    if args.len() != 1 {
-        Err(InvalidArgument::InvalidNumberOfArguments(
-            "quote".to_string(),
-            1,
-            args.len(),
-        ))?
+    Ok(args.as_pair().unwrap().car().into())
+}
+
+fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    validate_number_of_arguments("if", 2, 3, args.len())?;
+    let predicate = eval(args.as_pair().unwrap().car().into(), frame, false)?;
+    let predicate = predicate.as_boolean().ok_or(InvalidArgument::InvalidType(
+        predicate.to_string(),
+        "boolean".to_string(),
+    ))?;
+    if *predicate {
+        Ok(eval(
+            args.as_pair()
+                .unwrap()
+                .cdr()
+                .as_pair()
+                .unwrap()
+                .car()
+                .into(),
+            frame,
+            false,
+        )?)
     } else {
-        Ok(args.as_pair().unwrap().car().into())
+        if let Some(pair) = args
+            .as_pair()
+            .unwrap()
+            .cdr()
+            .as_pair()
+            .unwrap()
+            .cdr()
+            .as_pair()
+        {
+            Ok(eval(pair.car().into(), frame, false)?)
+        } else {
+            Ok(Value::Void)
+        }
     }
 }
 

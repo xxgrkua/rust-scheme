@@ -68,6 +68,9 @@ pub enum InvalidArgument {
     #[error("{0} expects at least {1} arguments, but got {2} arguments")]
     TooFewArguments(String, usize, usize),
 
+    #[error("{0} expects at most {1} arguments, but got {2} arguments")]
+    TooManyArguments(String, usize, usize),
+
     #[error("{0} expects {1} arguments, but got {2} arguments")]
     InvalidNumberOfArguments(String, usize, usize),
 
@@ -81,6 +84,41 @@ pub(crate) fn invalid_number<T: ToString>(value: &T) -> InvalidArgument {
 
 pub(crate) fn invalid_symbol<T: ToString>(value: &T) -> InvalidArgument {
     InvalidArgument::InvalidType(value.to_string(), "symbol".to_string())
+}
+
+pub fn validate_number_of_arguments(
+    name: &str,
+    least_expected: usize,
+    most_expected: usize,
+    actual: usize,
+) -> Result<(), InvalidArgument> {
+    if (least_expected == most_expected) && (actual != least_expected) {
+        Err(InvalidArgument::InvalidNumberOfArguments(
+            name.to_string(),
+            least_expected,
+            actual,
+        ))
+    } else if (most_expected == usize::MAX) && (actual < least_expected) {
+        Err(InvalidArgument::TooFewArguments(
+            name.to_string(),
+            least_expected,
+            actual,
+        ))
+    } else if actual < least_expected {
+        Err(InvalidArgument::TooFewArguments(
+            name.to_string(),
+            least_expected,
+            actual,
+        ))
+    } else if actual > most_expected {
+        Err(InvalidArgument::TooManyArguments(
+            name.to_string(),
+            most_expected,
+            actual,
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 impl From<InvalidArgument> for ApplyError {

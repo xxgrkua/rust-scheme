@@ -35,7 +35,7 @@ fn sub(args: Vec<Value>) -> Result<Value, ApplyError> {
         Err(InvalidArgument::TooFewArguments("-".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
-        let mut difference = *first.as_number().ok_or_else(|| invalid_number(&first))?;
+        let mut difference = *first.as_number().ok_or(invalid_number(&first))?;
         if rest.len() > 0 {
             for arg in rest {
                 if let Some(number) = arg.as_number() {
@@ -78,7 +78,7 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
         Err(InvalidArgument::TooFewArguments("/".to_string(), 1, 0))?
     } else {
         let (first, rest) = split_value(&args);
-        let mut quotient = *first.as_number().ok_or_else(|| invalid_number(&first))?;
+        let mut quotient = *first.as_number().ok_or(invalid_number(&first))?;
         if rest.len() > 0 {
             for arg in rest {
                 if let Some(number) = arg.as_number() {
@@ -105,3 +105,28 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
         Ok(quotient.into())
     }
 }
+
+fn equal(args: Vec<Value>) -> Result<Value, ApplyError> {
+    if args.len() < 2 {
+        Err(InvalidArgument::TooFewArguments(
+            "=".to_string(),
+            2,
+            args.len(),
+        ))?
+    } else {
+        let (first, rest) = split_value(&args);
+        let first = first.as_number().ok_or(invalid_number(&first))?;
+        for arg in rest {
+            let number = arg.as_number().ok_or(invalid_number(&arg))?;
+            if first != number {
+                return Ok(false.into());
+            }
+        }
+        Ok(true.into())
+    }
+}
+
+pub const MATH_EQUAL: BuiltinProcedure = BuiltinProcedure {
+    name: "=",
+    function: equal,
+};
