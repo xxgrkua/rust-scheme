@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::ptr::NonNull;
@@ -526,12 +527,26 @@ pub struct Thunk {
     pub(crate) frame: FrameLink,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub struct Frame {
     pub(crate) content: FrameLink,
 }
 
 pub(crate) type FrameLink = NonNull<FrameNode>;
+
+impl Clone for Frame {
+    fn clone(&self) -> Self {
+        unsafe {
+            self.content
+                .as_ref()
+                .ref_count
+                .set(self.content.as_ref().ref_count.get() + 1);
+            Self {
+                content: self.content,
+            }
+        }
+    }
+}
 
 impl Debug for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -546,10 +561,11 @@ impl Debug for Frame {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub(crate) struct FrameNode {
     data: HashMap<String, Value>,
     parent: Option<FrameLink>,
+    ref_count: Cell<usize>,
 }
 
 impl Debug for FrameNode {
@@ -576,6 +592,7 @@ impl Frame {
                 content: NonNull::new_unchecked(Box::into_raw(Box::new(FrameNode {
                     data: HashMap::new(),
                     parent: None,
+                    ref_count: Cell::new(1),
                 }))),
             }
         }
@@ -583,10 +600,16 @@ impl Frame {
 
     pub fn new_with_parent(parent: &Self) -> Self {
         unsafe {
+            parent
+                .content
+                .as_ref()
+                .ref_count
+                .set(parent.content.as_ref().ref_count.get() + 1);
             Self {
                 content: NonNull::new_unchecked(Box::into_raw(Box::new(FrameNode {
                     data: HashMap::new(),
                     parent: Some(parent.content),
+                    ref_count: Cell::new(1),
                 }))),
             }
         }
@@ -594,10 +617,15 @@ impl Frame {
 
     pub fn make_child(&self) -> Self {
         unsafe {
+            self.content
+                .as_ref()
+                .ref_count
+                .set(self.content.as_ref().ref_count.get() + 1);
             Self {
                 content: NonNull::new_unchecked(Box::into_raw(Box::new(FrameNode {
                     data: HashMap::new(),
                     parent: Some(self.content),
+                    ref_count: Cell::new(1),
                 }))),
             }
         }
@@ -629,7 +657,13 @@ impl Frame {
 impl Drop for Frame {
     fn drop(&mut self) {
         unsafe {
-            let _ = Box::from_raw(self.content.as_ptr());
+            self.content
+                .as_ref()
+                .ref_count
+                .set(self.content.as_ref().ref_count.get() - 1);
+            if self.content.as_ref().ref_count.get() == 0 {
+                let _ = Box::from_raw(self.content.as_ptr());
+            }
         }
     }
 }
@@ -738,6 +772,7 @@ impl From<GraphicProcedure> for Procedure {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LambdaProcedure {
+    pub(crate) name: Option<String>,
     pub(crate) formals: Vec<String>,
     pub(crate) body: Link,
     pub(crate) frame: Frame,
@@ -745,7 +780,7 @@ pub struct LambdaProcedure {
 
 impl Display for LambdaProcedure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "#[lambda at {:p}]", self)
+        write!(f, "#[{}]", self.name.as_ref().map_or("lambda", |name| name))
     }
 }
 

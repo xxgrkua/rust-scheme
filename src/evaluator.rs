@@ -40,12 +40,13 @@ pub fn eval(
 ) -> Result<Value, EvalError> {
     match expression.content.as_expression_content() {
         Some(ExpressionContent::PairLink(pair)) => {
-            if tail_content {
-                return Ok(Value::Thunk(Thunk {
-                    content: expression.content.clone(),
-                    frame: frame.content,
-                }));
-            }
+            // TODO: Implement tail call optimization
+            // if tail_content {
+            //     return Ok(Value::Thunk(Thunk {
+            //         content: expression.content.clone(),
+            //         frame: frame.content,
+            //     }));
+            // }
             if let Some(symbol) = pair.car.as_symbol() {
                 if SPECIAL_FORMS.contains_key(symbol) {
                     let special_form = SPECIAL_FORMS[symbol];
@@ -74,12 +75,25 @@ pub fn eval(
     }
 }
 
+fn eval_all(expressions: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    let mut result = Value::Void;
+    let mut it = expressions.iter().peekable();
+    while let Some(expression) = it.next() {
+        if it.peek().is_none() {
+            result = eval(expression.clone().into(), frame, true)?;
+        } else {
+            result = eval(expression.clone().into(), frame, false)?;
+        }
+    }
+    Ok(result)
+}
+
 impl SpecialForm {
     pub fn apply(&self, args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
         match self {
             Self::Define => do_define_form(args, frame),
             Self::If => do_if_form(args, frame),
-            Self::Lambda => do_lambda_form(args, frame),
+            Self::Lambda => do_lambda_form(args, frame, None),
             Self::Quote => do_quote_form(args, frame),
             _ => {
                 unimplemented!()
@@ -100,7 +114,8 @@ fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
         }
         Some(ExpressionContent::PairLink(params)) => {
             if let Some(name) = params.car.as_symbol() {
-                let value = do_lambda_form(Link::new_pair(params.cdr(), pair.cdr()), frame)?;
+                let value =
+                    do_lambda_form(Link::new_pair(params.cdr(), pair.cdr()), frame, Some(name))?;
                 frame.define(name, value);
                 Ok(Value::Void)
             } else {
@@ -114,9 +129,25 @@ fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
     }
 }
 
-fn do_lambda_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+fn do_lambda_form(args: Link, frame: &mut Frame, name: Option<&str>) -> Result<Value, EvalError> {
     validate_number_of_arguments("lambda", 2, usize::MAX, args.len())?;
-    unimplemented!()
+    let params = args.as_pair().unwrap().car();
+    let body = args.as_pair().unwrap().cdr();
+    let formals: Result<Vec<_>, _> = params
+        .iter()
+        .map(|x| {
+            x.as_symbol()
+                .ok_or(invalid_symbol(x))
+                .map(|s| s.to_string())
+        })
+        .collect();
+    Ok(LambdaProcedure {
+        name: name.map(|s| s.to_string()),
+        formals: formals?,
+        body,
+        frame: frame.clone(),
+    }
+    .into())
 }
 
 fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
@@ -167,8 +198,18 @@ impl BuiltinProcedure {
 }
 
 impl LambdaProcedure {
-    pub fn apply(&self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, ApplyError> {
-        unimplemented!()
+    pub fn apply(&self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, EvalError> {
+        validate_number_of_arguments(
+            self.name.as_ref().map_or("#[lambda]", |s| s),
+            self.formals.len(),
+            self.formals.len(),
+            args.len(),
+        )?;
+        let mut frame = frame.make_child();
+        for (formal, actual) in self.formals.iter().zip(args) {
+            frame.define(formal, actual);
+        }
+        eval_all(self.body.clone(), &mut frame)
     }
 }
 
@@ -180,12 +221,12 @@ impl GraphicProcedure {
 }
 
 impl Procedure {
-    pub fn apply(&mut self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, ApplyError> {
+    pub fn apply(&mut self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, EvalError> {
         match self {
-            Procedure::Builtin(builtin) => builtin.apply(args, frame),
+            Procedure::Builtin(builtin) => Ok(builtin.apply(args, frame)?),
             Procedure::Lambda(lambda) => lambda.apply(args, frame),
             #[cfg(target_arch = "wasm32")]
-            Procedure::Graphic(graphic) => graphic.apply(args, frame),
+            Procedure::Graphic(graphic) => Ok(graphic.apply(args, frame)?),
         }
     }
 }

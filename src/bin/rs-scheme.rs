@@ -1,6 +1,6 @@
 use std::io::{self, Stdin, Stdout, Write};
 
-use rust_scheme::{create_global_frame, interpret};
+use rust_scheme::{create_global_frame, interpret, Value};
 
 fn read(stdout: &mut Stdout, stdin: &Stdin, buffer: &mut String) -> Result<usize, io::Error> {
     print!("scm> ");
@@ -15,7 +15,10 @@ fn main() {
     let mut stdout = io::stdout();
     while read(&mut stdout, &stdin, &mut buffer).is_ok() {
         match interpret(&buffer, &mut global) {
-            Ok(value) => println!("{}", value),
+            Ok(value) => match value {
+                Value::Void => {}
+                _ => println!("{}", value),
+            },
             Err(error) => println!("Error: {}", error),
         }
         buffer.clear();

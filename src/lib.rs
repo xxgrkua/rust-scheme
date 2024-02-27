@@ -12,6 +12,7 @@ mod parser;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+pub use data_model::{Expression, Value};
 pub use evaluator::eval;
 pub use frame::create_global_frame;
 pub use interpreter::interpret;

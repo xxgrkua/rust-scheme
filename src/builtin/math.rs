@@ -33,7 +33,7 @@ pub(crate) const SUB: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn sub(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments("-", 1, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[-]", 1, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut difference = *first.as_number().ok_or(invalid_number(&first))?;
     if rest.len() > 0 {
@@ -73,7 +73,7 @@ pub(crate) const DIV: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments("/", 1, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[/]", 1, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut quotient = *first.as_number().ok_or(invalid_number(&first))?;
     if rest.len() > 0 {
@@ -103,7 +103,7 @@ fn div(args: Vec<Value>) -> Result<Value, ApplyError> {
 }
 
 fn equal(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments("=", 2, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[=]", 2, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let first = first.as_number().ok_or(invalid_number(&first))?;
     for arg in rest {
@@ -121,7 +121,7 @@ pub const MATH_EQUAL: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn less_than(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments("<", 2, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[<]", 2, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut first = first.as_number().ok_or(invalid_number(&first))?;
     for arg in rest {
@@ -141,7 +141,7 @@ pub const LESS_THAN: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn less_than_or_equal(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments("<=", 2, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[<=]", 2, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut first = first.as_number().ok_or(invalid_number(&first))?;
     for arg in rest {
@@ -161,7 +161,7 @@ pub const LESS_THAN_OR_EQUAL: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn greater_than(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments(">", 2, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[>]", 2, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut first = first.as_number().ok_or(invalid_number(&first))?;
     for arg in rest {
@@ -181,7 +181,7 @@ pub const GREATER_THAN: BuiltinProcedure = BuiltinProcedure {
 };
 
 fn greater_than_or_equal(args: Vec<Value>) -> Result<Value, ApplyError> {
-    validate_number_of_arguments(">=", 2, usize::MAX, args.len())?;
+    validate_number_of_arguments("#[>=]", 2, usize::MAX, args.len())?;
     let (first, rest) = split_value(&args);
     let mut first = first.as_number().ok_or(invalid_number(&first))?;
     for arg in rest {
