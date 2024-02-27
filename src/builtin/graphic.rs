@@ -90,7 +90,7 @@ pub fn position(args: Vec<Value>, canvas: &mut Canvas) -> Result<Value, ApplyErr
         ))?
     } else {
         let x: Number = canvas.content.borrow().x.into();
-        let y: Number = canvas.content.borrow().y.into();
+        let y: Number = (-canvas.content.borrow().y).into();
         let pair_link = Link::new_pair(x.into(), Link::new_pair(y.into(), Link::Nil));
         Ok(pair_link.into())
     }
