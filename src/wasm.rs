@@ -2,8 +2,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     builtin::graphic::{
-        backward, begin_fill, end_fill, forward, hide_turtle, is_visible, left, reset, right,
-        show_turtle,
+        backward, begin_fill, end_fill, forward, hide_turtle, is_visible, left, pendown, penup,
+        position, reset, right, setposition, show_turtle,
     },
     canvas::{Canvas, Path},
     create_global_frame,
@@ -185,6 +185,22 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
 
     frame.add_graphic(left_procedure, &["lt"]);
 
+    let setposition_procedure = GraphicProcedure {
+        name: "setposition",
+        function: setposition,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(setposition_procedure, &["setpos", "goto"]);
+
+    let position_procedure = GraphicProcedure {
+        name: "position",
+        function: position,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(position_procedure, &["pos"]);
+
     let begin_fill_procedure = GraphicProcedure {
         name: "begin-fill",
         function: begin_fill,
@@ -200,6 +216,22 @@ fn create_wasm_global_env() -> (Frame, Canvas) {
     };
 
     frame.add_graphic(end_fill_procedure, &[]);
+
+    let penup_procedure = GraphicProcedure {
+        name: "penup",
+        function: penup,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(penup_procedure, &["pu", "up"]);
+
+    let pendown_procedure = GraphicProcedure {
+        name: "pendown",
+        function: pendown,
+        canvas: canvas.clone(),
+    };
+
+    frame.add_graphic(pendown_procedure, &["pd", "down"]);
 
     let reset_procedure = GraphicProcedure {
         name: "reset",
