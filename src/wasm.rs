@@ -147,6 +147,10 @@ impl Interpreter {
             Err(err) => Err(err.to_string()),
         }
     }
+
+    pub fn eval_file(&mut self, input: String) -> Result<Output, String> {
+        self.eval(format!("(begin {})", input))
+    }
 }
 
 fn create_wasm_global_env() -> (Frame, Canvas) {
