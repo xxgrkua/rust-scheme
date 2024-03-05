@@ -870,6 +870,18 @@ impl Value {
     }
 }
 
+impl From<Value> for bool {
+    fn from(value: Value) -> Self {
+        *value.as_boolean().unwrap_or(&true)
+    }
+}
+
+impl From<&Value> for bool {
+    fn from(value: &Value) -> Self {
+        *value.as_boolean().unwrap_or(&true)
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

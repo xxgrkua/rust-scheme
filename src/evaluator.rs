@@ -91,6 +91,7 @@ fn eval_all(expressions: Link, frame: &mut Frame) -> Result<Value, EvalError> {
 impl SpecialForm {
     pub fn apply(&self, args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
         match self {
+            Self::And => do_and_form(args, frame),
             Self::Begin => do_begin_form(args, frame),
             Self::Define => do_define_form(args, frame),
             Self::If => do_if_form(args, frame),
@@ -101,6 +102,29 @@ impl SpecialForm {
             }
         }
     }
+}
+
+fn do_and_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    let mut result = true.into();
+    let mut it = args.iter().peekable();
+
+    while let Some(expression) = it.next() {
+        if it.peek().is_none() {
+            result = eval(expression.clone().into(), frame, true)?;
+        } else {
+            result = eval(expression.clone().into(), frame, false)?;
+            if (&result).into() {
+                continue;
+            } else {
+                return Ok(false.into());
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn do_begin_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    eval_all(args, frame)
 }
 
 fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
@@ -159,11 +183,7 @@ fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
 fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
     validate_number_of_arguments("if", 2, 3, args.len())?;
     let predicate = eval(args.as_pair().unwrap().car().into(), frame, false)?;
-    let predicate = predicate.as_boolean().ok_or(InvalidArgument::InvalidType(
-        predicate.to_string(),
-        "boolean".to_string(),
-    ))?;
-    if *predicate {
+    if predicate.into() {
         Ok(eval(
             args.as_pair()
                 .unwrap()
@@ -173,7 +193,7 @@ fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
                 .car()
                 .into(),
             frame,
-            false,
+            true,
         )?)
     } else {
         if let Some(pair) = args
@@ -185,15 +205,11 @@ fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
             .cdr()
             .as_pair()
         {
-            Ok(eval(pair.car().into(), frame, false)?)
+            Ok(eval(pair.car().into(), frame, true)?)
         } else {
             Ok(Value::Void)
         }
     }
-}
-
-fn do_begin_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
-    eval_all(args, frame)
 }
 
 impl BuiltinProcedure {
@@ -203,7 +219,7 @@ impl BuiltinProcedure {
 }
 
 impl LambdaProcedure {
-    pub fn apply(&self, args: Vec<Value>, frame: &mut Frame) -> Result<Value, EvalError> {
+    pub fn apply(&self, args: Vec<Value>, _: &mut Frame) -> Result<Value, EvalError> {
         validate_number_of_arguments(
             self.name.as_ref().map_or("#[lambda]", |s| s),
             self.formals.len(),
