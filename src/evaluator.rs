@@ -96,6 +96,7 @@ impl SpecialForm {
             Self::Define => do_define_form(args, frame),
             Self::If => do_if_form(args, frame),
             Self::Lambda => do_lambda_form(args, frame, None),
+            Self::Or => do_or_form(args, frame),
             Self::Quote => do_quote_form(args, frame),
             _ => {
                 unimplemented!()
@@ -154,32 +155,6 @@ fn do_define_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
     }
 }
 
-fn do_lambda_form(args: Link, frame: &mut Frame, name: Option<&str>) -> Result<Value, EvalError> {
-    validate_number_of_arguments("lambda", 2, usize::MAX, args.len())?;
-    let params = args.as_pair().unwrap().car();
-    let body = args.as_pair().unwrap().cdr();
-    let formals: Result<Vec<_>, _> = params
-        .iter()
-        .map(|x| {
-            x.as_symbol()
-                .ok_or(invalid_symbol(x))
-                .map(|s| s.to_string())
-        })
-        .collect();
-    Ok(LambdaProcedure {
-        name: name.map(|s| s.to_string()),
-        formals: formals?,
-        body,
-        frame: frame.clone(),
-    }
-    .into())
-}
-
-fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
-    validate_number_of_arguments("quote", 1, 1, args.len())?;
-    Ok(args.as_pair().unwrap().car().into())
-}
-
 fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
     validate_number_of_arguments("if", 2, 3, args.len())?;
     let predicate = eval(args.as_pair().unwrap().car().into(), frame, false)?;
@@ -210,6 +185,49 @@ fn do_if_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
             Ok(Value::Void)
         }
     }
+}
+
+fn do_lambda_form(args: Link, frame: &mut Frame, name: Option<&str>) -> Result<Value, EvalError> {
+    validate_number_of_arguments("lambda", 2, usize::MAX, args.len())?;
+    let params = args.as_pair().unwrap().car();
+    let body = args.as_pair().unwrap().cdr();
+    let formals: Result<Vec<_>, _> = params
+        .iter()
+        .map(|x| {
+            x.as_symbol()
+                .ok_or(invalid_symbol(x))
+                .map(|s| s.to_string())
+        })
+        .collect();
+    Ok(LambdaProcedure {
+        name: name.map(|s| s.to_string()),
+        formals: formals?,
+        body,
+        frame: frame.clone(),
+    }
+    .into())
+}
+
+fn do_or_form(args: Link, frame: &mut Frame) -> Result<Value, EvalError> {
+    let mut result = false.into();
+    let mut it = args.iter().peekable();
+
+    while let Some(expression) = it.next() {
+        if it.peek().is_none() {
+            result = eval(expression.clone().into(), frame, true)?;
+        } else {
+            result = eval(expression.clone().into(), frame, false)?;
+            if (&result).into() {
+                return Ok(result);
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn do_quote_form(args: Link, _: &mut Frame) -> Result<Value, EvalError> {
+    validate_number_of_arguments("quote", 1, 1, args.len())?;
+    Ok(args.as_pair().unwrap().car().into())
 }
 
 impl BuiltinProcedure {
